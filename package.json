@@ -1,6 +1,6 @@
 {
   "name": "discgen-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Scaffold a production-ready Discord Bot in seconds.",
   "bin": {
     "discgen-cli": "dist/index.js"
@@ -43,7 +43,7 @@
   "homepage": "https://github.com/XSaitoKungX/discgen-cli#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/XSaitoKungX/discgen-cli.git"
+    "url": "git+https://github.com/XSaitoKungX/discgen-cli.git"
   },
   "bugs": {
     "url": "https://github.com/XSaitoKungX/discgen-cli/issues"
@@ -56,6 +56,13 @@
     "commander": "^14.0.3",
     "detect-package-manager": "^3.0.2",
     "fs-extra": "^11.3.4"
+  },
+  "vitest": {
+    "exclude": [
+      ".claude/**",
+      "node_modules/**",
+      "dist/**"
+    ]
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

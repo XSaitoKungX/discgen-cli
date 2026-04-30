@@ -6,6 +6,15 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.1] — 2026-05-01
+
+### Fixed
+
+- README banner now uses the correct SVG logo (`assets/logo.svg`) — the `assets/banner.png` reference was broken
+- Added `📦 Installation` section to README with all three usage options (npx, global install, local dependency) — usage after `npm install discgen-cli` was previously undocumented
+
+---
+
 ## [1.0.0] — 2026-05-01
 
 ### Added
