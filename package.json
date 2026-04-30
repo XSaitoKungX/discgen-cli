@@ -1,0 +1,72 @@
+{
+  "name": "discgen-cli",
+  "version": "1.0.0",
+  "description": "Scaffold a production-ready Discord Bot in seconds.",
+  "bin": {
+    "discgen-cli": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsup src/index.ts --format esm,cjs",
+    "test": "vitest",
+    "lint": "eslint src",
+    "format": "prettier --write src",
+    "prepublishOnly": "npm run build && npm run test -- --run"
+  },
+  "keywords": [
+    "discord",
+    "discord-bot",
+    "discord.js",
+    "bot",
+    "scaffolding",
+    "scaffold",
+    "cli",
+    "generator",
+    "create",
+    "template",
+    "boilerplate",
+    "typescript",
+    "slash-commands",
+    "interactions"
+  ],
+  "author": {
+    "name": "xsaitox",
+    "url": "https://xsaitox.dev"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/XSaitoKungX/discgen-cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/XSaitoKungX/discgen-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/XSaitoKungX/discgen-cli/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.3.0",
+    "commander": "^14.0.3",
+    "detect-package-manager": "^3.0.2",
+    "fs-extra": "^11.3.4"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^25.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "eslint": "^10.2.1",
+    "prettier": "^3.8.3",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}

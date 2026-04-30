@@ -1,4 +1,37 @@
-/AGENTS.md
-/CLAUDE.md
-/DESIGN.md
-/PROMPT.md
+# ─── Build Output ────────────────────────────────────────────────────────────
+dist/
+*.tgz
+*.tsbuildinfo
+
+# ─── Dependencies ────────────────────────────────────────────────────────────
+node_modules/
+
+# ─── Environment ─────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Test & Coverage ─────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── Editor & OS ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ─── AI / Agent Context (not for version control) ────────────────────────────
+AGENTS.md
+CLAUDE.md
+DESIGN.md
+PROMPT.md

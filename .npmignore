@@ -1,0 +1,27 @@
+# Source
+src/
+tsconfig.json
+tsup.config.ts
+eslint.config.mjs
+.prettierrc
+
+# Tests
+vitest.config.ts
+
+# Dev & CI
+.github/
+.vscode/
+assets/
+
+# Docs (kept: README.md, CHANGELOG.md, LICENSE via "files" in package.json)
+TODO.md
+PROMPT.md
+DESIGN.md
+AGENTS.md
+CLAUDE.md
+
+# Misc
+.env
+.env.*
+*.log
+.DS_Store
