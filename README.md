@@ -1,10 +1,8 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/XSaitoKungX/discgen-cli/main/assets/banner.png" alt="discgen-cli" width="100%" />
+<img src="https://raw.githubusercontent.com/XSaitoKungX/discgen-cli/main/assets/logo.svg" alt="discgen-cli logo" width="180" height="180" />
 
-<br />
-
-<h1>⚡ discgen-cli</h1>
+<h1>discgen-cli</h1>
 
 <p><strong>Scaffold a production-ready Discord Bot in seconds — not hours.</strong></p>
 
@@ -30,6 +28,7 @@
 </p>
 
 <p>
+  <a href="#-installation">Installation</a> ·
   <a href="#-quick-start">Quick Start</a> ·
   <a href="#-features">Features</a> ·
   <a href="#-what-gets-generated">Generated Output</a> ·
@@ -43,17 +42,55 @@
 
 ---
 
+## 📦 Installation
+
+### Option A — No install (recommended)
+
+```bash
+npx discgen-cli my-bot
+```
+
+Always uses the latest version. No global install needed.
+
+### Option B — Global install
+
+```bash
+npm install -g discgen-cli
+
+# then use it anywhere:
+discgen-cli my-bot
+discgen-cli          # wizard asks for the name
+discgen-cli --version
+discgen-cli --help
+```
+
+### Option C — Local project dependency
+
+```bash
+npm install discgen-cli
+
+# run via npx or package.json script:
+npx discgen-cli my-bot
+```
+
+> **Note:** `discgen-cli` is a **CLI scaffolding tool**, not a runtime library. You don't `require()`/`import` it — just run it as a command.
+
+---
+
 ## 🚀 Quick Start
 
 ```bash
 npx discgen-cli my-bot
 ```
 
-No installation needed. The interactive wizard does the rest.
+The interactive wizard takes over from there — no config files to edit upfront.
 
 ```bash
-# or — let the wizard ask for the name
+# let the wizard ask for the project name
 npx discgen-cli
+
+# preview every file without writing anything
+npx discgen-cli my-bot --dry-run
 ```
 
 ---
