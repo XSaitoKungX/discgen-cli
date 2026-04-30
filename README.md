@@ -33,7 +33,7 @@ npx discgen-cli
 
 ## What gets generated
 
-```
+```bash
 my-bot/
 ├── src/
 │   ├── commands/       ← auto-loaded, organized by category
@@ -51,14 +51,14 @@ my-bot/
 
 ## Options
 
-| Prompt | Choices |
-|---|---|
-| Command type | Slash Commands / Prefix / Both |
-| Features | Moderation, Utility, Fun, Economy, Music |
-| Database | None / SQLite / PostgreSQL |
-| Package manager | npm / pnpm / bun |
-| Git init | Yes / No |
-| Install deps | Yes / No |
+| Prompt              | Choices                                    |
+|---------------------|--------------------------------------------|
+| Command type        | Slash Commands / Prefix / Both             |
+| Features            | Moderation, Utility, Fun, Economy, Music   |
+| Database            | None / SQLite / PostgreSQL                 |
+| Package manager     | npm / pnpm / bun                           |
+| Git init            | Yes / No                                   |
+| Install deps        | Yes / No                                   |
 
 ---
 
