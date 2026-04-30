@@ -13,7 +13,8 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        # vitest v4 requires Node >= 20 (uses node:util styleText)
+        node-version: [20.x, 22.x]
 
     steps:
       - uses: actions/checkout@v4
