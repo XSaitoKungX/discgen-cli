@@ -35,6 +35,7 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 - [x] `P2` PostgreSQL template (`pg` + `drizzle-orm`)
 - [x] `P2` Auto-generated `README.md` per project
 - [x] `P3` Auto-generated `deploy-commands.ts` script
+- [x] `P2` Logger utility (`src/utils/logger.ts`) — zero-dependency, log levels, colors, context, stderr/stdout
 
 ---
 
@@ -45,16 +46,18 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 - [x] `P1` `.prettierrc` config
 - [x] `P1` `.gitignore` (node_modules, dist, .env)
 - [x] `P2` `.env.example` with all required variables
-- [x] `P2` `vitest` setup for CLI unit tests (32 tests passing)
+- [x] `P2` `vitest` setup for CLI unit tests (40 tests passing)
 - [x] `P3` GitHub Actions CI workflow in generated project
+- [x] `P2` GitHub Actions CI for discgen-cli repo (Node 18/20/22 matrix)
+- [x] `P2` GitHub Actions Release workflow (auto-publish on `v*` tag)
 
 ---
 
 ## Publishing
 
-- [ ] `P2` Publish to npm as `discgen-cli`
-- [ ] `P2` GitHub Releases with changelog
-- [ ] `P2` npm README with usage gif/demo
+- [x] `P2` Publish to npm as `discgen-cli`
+- [ ] `P2` GitHub Releases with changelog (automated via release.yml from v1.1.0)
+- [x] `P2` npm README with usage demo
 - [ ] `P3` Website page on xsaitox.dev
 
 ---

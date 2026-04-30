@@ -3,12 +3,14 @@ import type { WizardOptions } from '../../types/index.js';
 export function generateReadyEvent(): string {
   return `import type { Client } from 'discord.js';
 import type { Event } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 const event: Event = {
   name: 'ready',
   once: true,
   execute(client: Client): void {
-    console.log(\`Logged in as \${client.user?.tag ?? 'unknown'}!\`);
+    logger.info(\`Logged in as \${client.user?.tag ?? 'unknown'}\`, 'ready');
+    logger.info(\`Serving \${client.guilds.cache.size} guild(s)\`, 'ready');
   },
 };
 
@@ -34,6 +36,7 @@ export default event;
   return `import { Events } from 'discord.js';
 import type { Interaction, Client } from 'discord.js';
 import type { Event } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 const event: Event = {
   name: Events.InteractionCreate,
@@ -47,10 +50,12 @@ const event: Event = {
       return;
     }
 
+    logger.debug(\`Executing /\${interaction.commandName}\`, 'command');
+
     try {
       await command.execute(interaction, client);
     } catch (error) {
-      console.error(error);
+      logger.error(\`Failed to execute /\${interaction.commandName}\`, error, 'command');
       const message = { content: 'There was an error executing that command.', ephemeral: true };
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp(message);

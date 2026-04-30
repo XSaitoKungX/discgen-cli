@@ -5,6 +5,7 @@ export function generateIndexTs(opts: WizardOptions): string {
 import 'dotenv/config';
 import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
+import { logger } from './utils/logger.js';
 import type { Command } from './types/index.js';
 
 declare module 'discord.js' {
@@ -24,7 +25,12 @@ client.commands = new Collection();
 await loadCommands(client);
 await loadEvents(client);
 
+process.on('unhandledRejection', (error) => {
+  logger.error('Unhandled promise rejection', error, 'process');
+});
+
 await client.login(process.env.DISCORD_TOKEN);
+logger.info('Connecting to Discord...', 'bot');
 `;
 }
 

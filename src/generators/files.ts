@@ -14,6 +14,7 @@ import { generateTypesTs } from '../templates/base/types.js';
 import { generateCommandHandler, generateEventHandler } from '../templates/base/handlers.js';
 import { generateDeployCommandsTs, generateReadme } from '../templates/base/deploy.js';
 import { generateCiWorkflow } from '../templates/base/ci.js';
+import { generateLoggerTs } from '../templates/base/logger.js';
 import { generateReadyEvent, generateInteractionCreateEvent, generateMessageCreateEvent } from '../templates/events/index.js';
 import { generatePingCommand, generateUserinfoCommand, generateServerinfoCommand } from '../templates/commands/utility.js';
 import { generateBanCommand, generateKickCommand, generateTimeoutCommand, generateWarnCommand } from '../templates/commands/moderation.js';
@@ -93,6 +94,7 @@ function buildFileList(opts: WizardOptions, projectDir: string): FileEntry[] {
     add('src/database/index.ts', generateDatabaseTs(opts.database));
   }
 
+  add('src/utils/logger.ts', generateLoggerTs());
   add('.github/workflows/ci.yml', generateCiWorkflow());
 
   return files;

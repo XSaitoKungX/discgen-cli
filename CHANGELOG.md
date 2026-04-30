@@ -6,6 +6,33 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.0] — 2026-05-01
+
+### Added
+
+- **Logger template** — every generated bot now ships with `src/utils/logger.ts`:
+  - Zero dependencies (pure Node.js, no pino/winston)
+  - Log levels: `debug`, `info`, `warn`, `error` with ANSI colors + icons
+  - Context parameter: `logger.info('msg', 'ready')` → `[ready]` tag in output
+  - Error stack traces automatically appended on `logger.error()`
+  - `LOG_LEVEL` env var support (default: `info`)
+  - `error` → `stderr`, all others → `stdout`
+- **Logger wired into generated bot** — `ready.ts`, `interactionCreate.ts` and `index.ts` all use the logger instead of `console.log/error`
+- **`unhandledRejection` handler** in generated `index.ts` — logs uncaught errors via `logger.error`
+- **GitHub Actions CI** (`.github/workflows/ci.yml`) — Node 18/20/22 matrix, runs lint + build + tests on push/PR to discgen-cli repo
+- **GitHub Actions Release** (`.github/workflows/release.yml`) — auto-publishes to npm and creates a GitHub Release on `v*` tag push
+
+### How to use auto-release
+
+```bash
+# bump version in package.json, then:
+git tag v1.1.0
+git push origin v1.1.0
+# → CI runs, npm publish fires, GitHub Release is created automatically
+```
+
+---
+
 ## [1.0.1] — 2026-05-01
 
 ### Fixed
