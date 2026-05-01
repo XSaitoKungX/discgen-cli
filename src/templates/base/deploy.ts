@@ -23,7 +23,7 @@ for (const category of categories) {
   if (category === 'prefix') continue; // prefix commands are not slash commands
   const catPath = join(commandsPath, category);
   if (!statSync(catPath).isDirectory()) continue;
-  const files = readdirSync(catPath).filter((f) => f.endsWith('.js'));
+  const files = readdirSync(catPath).filter((f) => /\.[jt]s$/.test(f) && !f.endsWith('.d.ts'));
   for (const file of files) {
     const filePath = join(catPath, file);
     const mod = await import(pathToFileURL(filePath).href) as { data?: { toJSON: () => unknown } };

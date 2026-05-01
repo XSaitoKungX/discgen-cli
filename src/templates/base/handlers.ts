@@ -20,7 +20,7 @@ export async function loadCommands(client: Client): Promise<void> {
     const entryPath = join(commandsPath, entry);
     if (!statSync(entryPath).isDirectory()) continue;
 
-    const files = readdirSync(entryPath).filter((f) => f.endsWith('.js'));
+    const files = readdirSync(entryPath).filter((f) => /\.[jt]s$/.test(f) && !f.endsWith('.d.ts'));
 
     for (const file of files) {
       const filePath = join(entryPath, file);
@@ -63,7 +63,7 @@ export async function loadComponents(client: Client): Promise<void> {
 
   for (const subdir of subdirs) {
     const dirPath = join(interactionsPath, subdir);
-    const files = readdirSync(dirPath).filter((f) => f.endsWith('.js'));
+    const files = readdirSync(dirPath).filter((f) => /\.[jt]s$/.test(f) && !f.endsWith('.d.ts'));
 
     for (const file of files) {
       const filePath = join(dirPath, file);
@@ -96,7 +96,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export async function loadEvents(client: Client): Promise<void> {
   const eventsPath = join(__dirname, '..', 'events');
-  const files = readdirSync(eventsPath).filter((f) => f.endsWith('.js'));
+  const files = readdirSync(eventsPath).filter((f) => /\.[jt]s$/.test(f) && !f.endsWith('.d.ts'));
 
   for (const file of files) {
     const filePath = join(eventsPath, file);

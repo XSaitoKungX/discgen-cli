@@ -6,6 +6,14 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0-hotfix.1] — 2026-05-01
+
+### Fixed
+
+- **Slash commands not registering / not loading in dev mode** — all file scanners in generated bots now accept both `.ts` (tsx dev) and `.js` (compiled) files. The filter `f.endsWith('.js')` was silently finding zero files when running with `tsx watch src/index.ts` or `npm run deploy`. Changed to `/\.[jt]s$/.test(f) && !f.endsWith('.d.ts')` in `commandHandler`, `eventHandler`, `interactionLoader`, and `deploy-commands.ts`
+
+---
+
 ## [1.4.0] — 2026-05-01
 
 ### Fixed
