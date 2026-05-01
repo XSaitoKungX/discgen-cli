@@ -13,37 +13,37 @@ interface PackageJson {
 
 export function generatePackageJson(opts: WizardOptions): PackageJson {
   const deps: Record<string, string> = {
-    'discord.js': '^14.26.2',
-    dotenv: '^16.5.0',
+    'discord.js': 'latest',
+    dotenv: 'latest',
   };
 
   const devDeps: Record<string, string> = {
-    '@types/node': '^22.15.0',
-    '@typescript-eslint/eslint-plugin': '^8.32.0',
-    '@typescript-eslint/parser': '^8.32.0',
-    eslint: '^9.27.0',
-    prettier: '^3.5.3',
-    tsup: '^8.4.0',
-    tsx: '^4.19.4',
-    typescript: '^5.8.3',
+    '@types/node': 'latest',
+    '@typescript-eslint/eslint-plugin': 'latest',
+    '@typescript-eslint/parser': 'latest',
+    eslint: 'latest',
+    prettier: 'latest',
+    tsup: 'latest',
+    tsx: 'latest',
+    typescript: 'latest',
   };
 
   if (opts.database === 'sqlite') {
-    deps['better-sqlite3'] = '^11.9.1';
-    devDeps['@types/better-sqlite3'] = '^7.6.13';
+    deps['better-sqlite3'] = 'latest';
+    devDeps['@types/better-sqlite3'] = 'latest';
   }
 
   if (opts.database === 'postgresql') {
-    deps['drizzle-orm'] = '^0.41.0';
-    deps['pg'] = '^8.14.1';
-    devDeps['drizzle-kit'] = '^0.30.6';
-    devDeps['@types/pg'] = '^8.11.13';
+    deps['drizzle-orm'] = 'latest';
+    deps['pg'] = 'latest';
+    devDeps['drizzle-kit'] = 'latest';
+    devDeps['@types/pg'] = 'latest';
   }
 
   const scripts: Record<string, string> = {
     dev: 'tsx watch src/index.ts',
-    build: 'tsup src/index.ts --format cjs --dts',
-    start: 'node dist/index.cjs',
+    build: 'tsup src/index.ts --format esm',
+    start: 'node dist/index.js',
     deploy: 'tsx src/deploy-commands.ts',
     lint: 'eslint src',
     format: 'prettier --write src',
