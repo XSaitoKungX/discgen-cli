@@ -6,6 +6,15 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.2] — 2026-05-01
+
+### Fixed
+
+- Generated bot `package.json` now uses `"latest"` for all dependencies — fixes `npm install` failures caused by pinned versions that didn't exist yet
+- Generated bot build script corrected: `tsup --format esm` (matches `"type": "module"`) and `start` uses `node dist/index.js`
+
+---
+
 ## [1.3.0] — 2026-05-01
 
 ### Added
