@@ -46,22 +46,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Extract changelog for ${{ github.ref_name }}
-        id: changelog
         run: |
           VERSION="${{ github.ref_name }}"
           VERSION="${VERSION#v}"
-          NOTES=$(awk "/^## \[${VERSION}\]/{found=1; next} found && /^## \[/{exit} found && NF{print}" CHANGELOG.md)
-          {
-            echo "notes<<EOF"
-            echo "$NOTES"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          awk "/^## \[${VERSION}\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md > release-notes.md
+          echo "--- extracted $(wc -l < release-notes.md) lines for $VERSION"
 
       - name: Create GitHub Release
         run: |
           gh release create "${{ github.ref_name }}" \
             --title "Release ${{ github.ref_name }}" \
-            --notes "${{ steps.changelog.outputs.notes }}" \
+            --notes-file release-notes.md \
             --verify-tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
