@@ -6,6 +6,14 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0-hotfix.2] — 2026-05-01
+
+### Fixed
+
+- **`client.commands` undefined in all event handlers** — Discord.js only passes its own event arguments (e.g. `interaction`, `message`) to event listeners, never `client`. The event handler now appends the `client` variable from the outer scope: `execute(...args, client)`. Without this, every `execute(interaction, client)` call received `undefined` for `client`, crashing on `client.commands.get(...)`.
+
+---
+
 ## [1.4.0-hotfix.1] — 2026-05-01
 
 ### Fixed
