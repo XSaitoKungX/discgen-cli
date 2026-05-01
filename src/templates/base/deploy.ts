@@ -1,6 +1,6 @@
 export function generateDeployCommandsTs(): string {
   return `import { REST, Routes } from 'discord.js';
-import { readdirSync } from 'fs';
+import { readdirSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import 'dotenv/config';
@@ -20,9 +20,12 @@ const commandsPath = join(__dirname, 'commands');
 const categories = readdirSync(commandsPath);
 
 for (const category of categories) {
-  const files = readdirSync(join(commandsPath, category)).filter((f) => f.endsWith('.js'));
+  if (category === 'prefix') continue; // prefix commands are not slash commands
+  const catPath = join(commandsPath, category);
+  if (!statSync(catPath).isDirectory()) continue;
+  const files = readdirSync(catPath).filter((f) => f.endsWith('.js'));
   for (const file of files) {
-    const filePath = join(commandsPath, category, file);
+    const filePath = join(catPath, file);
     const mod = await import(pathToFileURL(filePath).href) as { data?: { toJSON: () => unknown } };
     if (mod.data) commands.push(mod.data.toJSON());
   }
@@ -68,7 +71,7 @@ npm run dev            # start in watch mode
 
 ## Requirements
 
-- Node.js >= 18
+- Node.js >= 22
 - A Discord Bot Token — [Discord Developer Portal](https://discord.com/developers/applications)
 
 ## License

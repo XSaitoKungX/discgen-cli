@@ -13,9 +13,9 @@ export function validateProjectName(name: string): string | undefined {
 
 export function checkNodeVersion(): void {
   const [major] = process.versions.node.split('.').map(Number);
-  if (major < 18) {
+  if (major < 22) {
     throw new Error(
-      `discgen-cli requires Node.js >= 18. You are running Node.js ${process.versions.node}.`,
+      `discgen-cli requires Node.js >= 22. You are running Node.js ${process.versions.node}.`,
     );
   }
 }

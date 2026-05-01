@@ -165,12 +165,17 @@ my-bot/
 ├── src/
 │   ├── commands/
 │   │   ├── moderation/                ← ban, kick, timeout, warn
-│   │   └── utility/                   ← ping, help, userinfo, serverinfo
+│   │   ├── utility/                   ← ping, help, userinfo, serverinfo, avatar
+│   │   ├── fun/                       ← coinflip, 8ball, meme
+│   │   ├── economy/                   ← balance, daily, leaderboard (db-aware)
+│   │   ├── music/                     ← play, stop (placeholder)
+│   │   └── prefix/                    ← prefix commands (if commandType includes prefix)
 │   ├── events/
 │   │   ├── ready.ts
-│   │   └── interactionCreate.ts       ← routes slash, buttons, selects, modals
+│   │   ├── interactionCreate.ts       ← routes slash, buttons, selects, modals
+│   │   └── messageCreate.ts           ← routes prefix commands (if applicable)
 │   ├── handlers/
-│   │   ├── commandHandler.ts          ← auto-loads all commands
+│   │   ├── commandHandler.ts          ← auto-loads slash + prefix commands
 │   │   ├── interactionLoader.ts       ← auto-loads all component handlers
 │   │   └── eventHandler.ts            ← auto-loads all events
 │   ├── interactions/                  ← when "Components" feature is selected
@@ -181,8 +186,9 @@ my-bot/
 │   │   │   └── example-select.ts
 │   │   └── modals/
 │   │       └── example-modal.ts
+│   ├── services/                      ← generated with: discgen-cli g service <name>
 │   ├── types/
-│   │   └── index.ts                   ← Command, Event, ButtonHandler, SelectHandler, ModalHandler
+│   │   └── index.ts                   ← Command, PrefixCommand, Event, ButtonHandler, SelectHandler, ModalHandler
 │   ├── utils/
 │   │   ├── logger.ts                  ← zero-dep ANSI logger (debug/info/warn/error)
 │   │   ├── env.ts                     ← typed env validator — exits on missing vars
@@ -277,6 +283,15 @@ discgen-cli g select role-picker             # → src/interactions/selects/role
 discgen-cli g modal feedback                 # → src/interactions/modals/feedback.ts
 ```
 
+### Services
+
+```bash
+discgen-cli g service avatar-api             # → src/services/avatar-api.ts
+discgen-cli g svc cache                      # short alias
+```
+
+A service is a singleton class — useful for wrapping external APIs, shared caches, or any stateful utility.
+
 ### Guards
 
 ```bash
@@ -293,6 +308,7 @@ discgen-cli g guard permissions              # → src/guards/permissions.ts
 | `select` | `sel`, `s` |
 | `modal` | `m` |
 | `guard` | `gd` |
+| `service` | `svc` |
 
 ```bash
 # All equivalent

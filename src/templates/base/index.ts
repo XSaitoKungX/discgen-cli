@@ -1,7 +1,11 @@
 import type { WizardOptions } from '../../types/index.js';
 
 export function generateIndexTs(opts: WizardOptions): string {
-  const needsMessages = opts.commandType === 'prefix' || opts.commandType === 'both';
+  const needsMessages    = opts.commandType === 'prefix' || opts.commandType === 'both';
+  const hasPrefixCmds    = needsMessages;
+  const prefixImport     = hasPrefixCmds ? ', PrefixCommand' : '';
+  const prefixClientDecl = hasPrefixCmds ? '\n    prefixCommands: Collection<string, PrefixCommand>;' : '';
+  const prefixInit       = hasPrefixCmds ? '\nclient.prefixCommands = new Collection();' : '';
 
   return `import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import 'dotenv/config';
@@ -10,11 +14,11 @@ import { loadComponents } from './handlers/interactionLoader.js';
 import { loadEvents } from './handlers/eventHandler.js';
 import { logger } from './utils/logger.js';
 import { env } from './utils/env.js';
-import type { Command, ButtonHandler, SelectHandler, ModalHandler } from './types/index.js';
+import type { Command${prefixImport}, ButtonHandler, SelectHandler, ModalHandler } from './types/index.js';
 
 declare module 'discord.js' {
   interface Client {
-    commands: Collection<string, Command>;
+    commands: Collection<string, Command>;${prefixClientDecl}
     buttons:  Collection<string, ButtonHandler>;
     selects:  Collection<string, SelectHandler>;
     modals:   Collection<string, ModalHandler>;
@@ -27,7 +31,7 @@ const client = new Client({
   ],
 });
 
-client.commands = new Collection();
+client.commands = new Collection();${prefixInit}
 client.buttons  = new Collection();
 client.selects  = new Collection();
 client.modals   = new Collection();
@@ -40,15 +44,16 @@ process.on('unhandledRejection', (error) => {
   logger.error('Unhandled promise rejection', error, 'process');
 });
 
-await client.login(env.DISCORD_TOKEN);
 logger.info('Connecting to Discord...', 'bot');
+await client.login(env.DISCORD_TOKEN);
 `;
 }
 
-export function generateEnvExample(): string {
+export function generateEnvExample(opts?: { commandType?: string }): string {
+  const needsPrefix = opts?.commandType === 'prefix' || opts?.commandType === 'both';
   return `DISCORD_TOKEN=your_bot_token_here
 CLIENT_ID=your_client_id_here
-GUILD_ID=your_guild_id_here
+GUILD_ID=your_guild_id_here${needsPrefix ? '\nPREFIX=!' : ''}
 `;
 }
 

@@ -18,7 +18,7 @@ import { generateLoggerTs } from '../templates/base/logger.js';
 import { generateEnvValidatorTs } from '../templates/base/env.js';
 import { generateCooldownTs } from '../templates/base/cooldown.js';
 import { generateReadyEvent, generateInteractionCreateEvent, generateMessageCreateEvent } from '../templates/events/index.js';
-import { generatePingCommand, generateUserinfoCommand, generateServerinfoCommand } from '../templates/commands/utility.js';
+import { generatePingCommand, generateUserinfoCommand, generateServerinfoCommand, generateAvatarCommand } from '../templates/commands/utility.js';
 import { generateHelpCommand } from '../templates/commands/help.js';
 import { generateBanCommand, generateKickCommand, generateTimeoutCommand, generateWarnCommand } from '../templates/commands/moderation.js';
 import { generateCoinflipCommand, generateEightBallCommand, generateMemeCommand } from '../templates/commands/fun.js';
@@ -50,7 +50,7 @@ function buildFileList(opts: WizardOptions, projectDir: string): FileEntry[] {
   add('.gitignore',        generateGitignore());
   add('README.md',         generateReadme(opts.projectName));
 
-  let envExample = generateEnvExample();
+  let envExample = generateEnvExample(opts);
   const dbEnvVars = generateDatabaseEnvVars(opts.database);
   if (dbEnvVars) envExample += dbEnvVars;
   add('.env.example', envExample);
@@ -79,6 +79,7 @@ function buildFileList(opts: WizardOptions, projectDir: string): FileEntry[] {
   if (opts.features.includes('utility')) {
     add('src/commands/utility/userinfo.ts',   generateUserinfoCommand());
     add('src/commands/utility/serverinfo.ts', generateServerinfoCommand());
+    add('src/commands/utility/avatar.ts',     generateAvatarCommand());
   }
   if (opts.features.includes('moderation')) {
     add('src/commands/moderation/ban.ts',     generateBanCommand());
@@ -92,9 +93,9 @@ function buildFileList(opts: WizardOptions, projectDir: string): FileEntry[] {
     add('src/commands/fun/meme.ts',     generateMemeCommand());
   }
   if (opts.features.includes('economy')) {
-    add('src/commands/economy/balance.ts',     generateBalanceCommand());
-    add('src/commands/economy/daily.ts',       generateDailyCommand());
-    add('src/commands/economy/leaderboard.ts', generateLeaderboardCommand());
+    add('src/commands/economy/balance.ts',     generateBalanceCommand(opts.database));
+    add('src/commands/economy/daily.ts',       generateDailyCommand(opts.database));
+    add('src/commands/economy/leaderboard.ts', generateLeaderboardCommand(opts.database));
   }
   if (opts.features.includes('music')) {
     add('src/commands/music/play.ts', generatePlayCommand());

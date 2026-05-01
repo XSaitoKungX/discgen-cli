@@ -6,6 +6,34 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0] — 2026-05-01
+
+### Fixed
+
+- **Prefix commands now work end-to-end** — `messageCreate` event routes to `client.prefixCommands`, `commandHandler` loads from `commands/prefix/` via `mod.default`, and `index.ts` declares + initializes the `prefixCommands: Collection<string, PrefixCommand>` on the Discord.js `Client`
+- **Login log order** — generated `index.ts` now logs "Connecting to Discord..." _before_ `client.login()` instead of after
+- **`deploy-commands.ts`** — skips `prefix/` directory (prefix commands have no `.data.toJSON()`) and adds `statSync` guard for non-directory entries
+- **Node version check** — `checkNodeVersion()` now enforces `>= 22` (was `>= 18`); generated bots set `engines.node: >=22`
+- **`.env.example`** — includes `PREFIX=!` when `commandType` is `prefix` or `both`
+- **`generate` error message** — lists all type aliases including new `service`/`svc`
+
+### Added
+
+- **`/avatar` slash command** — added to the `utility` feature; shows a user's avatar in a Components v2 container with a "Open full size" link button
+- **`generate service` subcommand** — `discgen-cli g service <name>` (alias `svc`) generates a singleton service class in `src/services/<name>.ts`
+- **Economy commands are now database-aware** — when `sqlite` is selected, `balance`/`daily`/`leaderboard` use `better-sqlite3` prepared statements; when `postgresql`, they use async drizzle-orm queries; no-database bots keep the in-memory Map fallback
+- **SQLite schema** — `users` table gains a `last_daily INTEGER` column used by the `daily` command
+- **PostgreSQL schema** — `users` table gains a `lastDaily: timestamp` column used by the `daily` command
+- **`vitest.config.ts`** — adds `pool: 'forks'` to fix parallel module-loading failures on Windows
+- **Dynamic `/help` command** — lists exactly the commands present in the scaffolded bot based on the selected features
+- **Prefix `/help` command** — shows a plain text command list, auto-populated with selected features
+
+### Tests
+
+- 153 tests passing (up from 110)
+
+---
+
 ## [1.3.3] — 2026-05-01
 
 ### Changed

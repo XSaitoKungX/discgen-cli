@@ -119,6 +119,7 @@ export function generateMessageCreateEvent(): string {
   return `import { Events } from 'discord.js';
 import type { Message, Client } from 'discord.js';
 import type { Event } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 const PREFIX = process.env.PREFIX ?? '!';
 
@@ -132,9 +133,17 @@ const event: Event = {
 
     if (!commandName) return;
 
-    // TODO: implement prefix command routing
-    void client;
-    void args;
+    const command = client.prefixCommands?.get(commandName);
+    if (!command) return;
+
+    logger.debug(\`Executing prefix !\${commandName}\`, 'command');
+
+    try {
+      await command.execute(message, args, client);
+    } catch (error) {
+      logger.error(\`Prefix command failed: \${commandName}\`, error, 'command');
+      await message.reply('There was an error executing that command.').catch(() => null);
+    }
   },
 };
 

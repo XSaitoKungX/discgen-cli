@@ -15,11 +15,11 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 - [x] `P1` Auto-install dependencies after scaffolding
 - [x] `P1` Git init support
 - [x] `P2` Overwrite confirmation if target directory exists
-- [x] `P2` Node.js version check (>= 18), exit with clear error if too old
+- [x] `P2` Node.js version check (>= 22), exit with clear error if too old
 - [x] `P2` "Next steps" output after scaffolding
 - [x] `P3` `--dry-run` flag to preview generated files without writing
 - [x] `P2` `--template <preset>` flag: `basic` | `moderation` | `full`
-- [x] `P1` `generate` subcommand (`discgen-cli g command|event|guard|button|select|modal <name>`)
+- [x] `P1` `generate` subcommand (`discgen-cli g command|event|guard|button|select|modal|service <name>`)
 - [x] `P1` Component interactions system (buttons, select menus, modals) with full routing in `interactionCreate`
 
 ---
@@ -28,20 +28,21 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 
 - [x] `P1` Base template (TypeScript, discord.js v14, command/event handler)
 - [x] `P1` Slash Commands template
-- [x] `P1` Prefix Commands template
+- [x] `P1` Prefix Commands template — full routing via `messageCreate` + `client.prefixCommands`
 - [x] `P2` Moderation commands (`ban`, `kick`, `timeout`, `warn`)
-- [x] `P2` Utility commands (`ping`, `userinfo`, `serverinfo`) — Components v2
+- [x] `P2` Utility commands (`ping`, `userinfo`, `serverinfo`, `avatar`) — Components v2
 - [x] `P2` Fun commands (`coinflip`, `8ball`, `meme`) — Components v2
-- [x] `P2` Economy commands (balance, daily, leaderboard) — Components v2
+- [x] `P2` Economy commands (balance, daily, leaderboard) — database-aware (SQLite/PostgreSQL/in-memory)
 - [x] `P3` Music commands (placeholder with note: requires voice deps)
-- [x] `P2` SQLite template (`better-sqlite3`)
-- [x] `P2` PostgreSQL template (`pg` + `drizzle-orm`)
+- [x] `P2` SQLite template (`better-sqlite3`) — `users` table with `balance` + `last_daily`
+- [x] `P2` PostgreSQL template (`pg` + `drizzle-orm`) — `users` table with `balance` + `lastDaily`
 - [x] `P2` Auto-generated `README.md` per project
-- [x] `P3` Auto-generated `deploy-commands.ts` script
+- [x] `P3` Auto-generated `deploy-commands.ts` script — skips `prefix/` folder
 - [x] `P2` Logger utility (`src/utils/logger.ts`) — zero-dependency, log levels, colors, context, stderr/stdout
 - [x] `P2` Env validator utility (`src/utils/env.ts`) — typed env check on startup, exits with clear error
 - [x] `P2` Cooldown utility (`src/utils/cooldown.ts`) — per-user command cooldown with auto-cleanup
-- [x] `P2` Help command (`src/commands/utility/help.ts`) — Components v2 for slash bots
+- [x] `P2` Help command (`src/commands/utility/help.ts`) — dynamic list, Components v2 for slash / plain text for prefix
+- [x] `P2` `generate service` subcommand — singleton service class in `src/services/`
 
 ---
 
@@ -51,10 +52,10 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 - [x] `P1` `eslint.config.mjs` with `@typescript-eslint` (ESLint 10 flat config)
 - [x] `P1` `.prettierrc` config
 - [x] `P1` `.gitignore` (node_modules, dist, .env)
-- [x] `P2` `.env.example` with all required variables
-- [x] `P2` `vitest` setup for CLI unit tests (110 tests passing)
+- [x] `P2` `.env.example` with all required variables (includes `PREFIX=!` for prefix bots)
+- [x] `P2` `vitest` setup for CLI unit tests — 153 tests passing, `vitest.config.ts` with `pool: forks`
 - [x] `P3` GitHub Actions CI workflow in generated project
-- [x] `P2` GitHub Actions CI for discgen-cli repo (Node 18/20/22 matrix)
+- [x] `P2` GitHub Actions CI for discgen-cli repo (Node 20/22 matrix)
 - [x] `P2` GitHub Actions Release workflow (auto-publish on `v*` tag)
 
 ---

@@ -75,6 +75,58 @@ export default { data, execute } satisfies Command;
 `;
 }
 
+export function generateAvatarCommand(): string {
+  return `import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  SectionBuilder,
+  TextDisplayBuilder,
+  ThumbnailBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('avatar')
+  .setDescription('Shows a user\\'s avatar.')
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user whose avatar to show').setRequired(false),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const target = interaction.options.getUser('user') ?? interaction.user;
+  const avatarUrl = target.displayAvatarURL({ size: 512 });
+
+  const container = new ContainerBuilder()
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(\`## \${target.username}'s Avatar\`),
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarUrl)),
+    );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel('Open full size')
+      .setStyle(ButtonStyle.Link)
+      .setURL(avatarUrl),
+  );
+
+  await interaction.reply({
+    components: [container, row],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
+export default { data, execute } satisfies Command;
+`;
+}
+
 export function generateServerinfoCommand(): string {
   return `import {
   SlashCommandBuilder,

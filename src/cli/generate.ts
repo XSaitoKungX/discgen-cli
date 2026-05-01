@@ -5,8 +5,9 @@ import { generateSlashCommandFile, generatePrefixCommandFile } from '../template
 import { generateEventFile, KNOWN_EVENTS } from '../templates/generate/event.js';
 import { generateGuardFile } from '../templates/generate/guard.js';
 import { generateButtonFile, generateSelectFile, generateModalFile } from '../templates/generate/interaction.js';
+import { generateServiceFile } from '../templates/generate/service.js';
 
-type GenerateType = 'command' | 'event' | 'guard' | 'button' | 'select' | 'modal';
+type GenerateType = 'command' | 'event' | 'guard' | 'button' | 'select' | 'modal' | 'service';
 
 const TYPE_ALIASES: Record<string, GenerateType> = {
   command: 'command', cmd: 'command', c: 'command',
@@ -15,6 +16,7 @@ const TYPE_ALIASES: Record<string, GenerateType> = {
   button:  'button',  btn: 'button',  b: 'button',
   select:  'select',  sel: 'select',  s: 'select',
   modal:   'modal',   m:   'modal',
+  service: 'service', svc: 'service',
 };
 
 export interface GenerateInput {
@@ -50,6 +52,7 @@ export async function runGenerate(input: GenerateInput = {}): Promise<void> {
         { value: 'select'  as const, label: 'select',  hint: 'select menu interaction handler' },
         { value: 'modal'   as const, label: 'modal',   hint: 'modal submit handler' },
         { value: 'guard'   as const, label: 'guard',   hint: 'permission / cooldown guard function' },
+        { value: 'service' as const, label: 'service', hint: 'singleton service class (src/services/)' },
       ],
     });
     if (p.isCancel(answer)) { p.cancel('Aborted.'); process.exit(0); }
@@ -122,6 +125,9 @@ export async function runGenerate(input: GenerateInput = {}): Promise<void> {
   } else if (genType === 'modal') {
     filePath = path.join(process.cwd(), 'src', 'interactions', 'modals', `${name}.ts`);
     content = generateModalFile(name);
+  } else if (genType === 'service') {
+    filePath = path.join(process.cwd(), 'src', 'services', `${name}.ts`);
+    content = generateServiceFile(name);
   } else {
     // guard
     filePath = path.join(process.cwd(), 'src', 'guards', `${name}.ts`);

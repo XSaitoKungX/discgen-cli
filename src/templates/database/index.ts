@@ -18,6 +18,7 @@ export function initDb(): void {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       balance INTEGER NOT NULL DEFAULT 0,
+      last_daily INTEGER,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
   \`);
@@ -42,6 +43,7 @@ export const db = drizzle(pool);
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
   balance: integer('balance').notNull().default(0),
+  lastDaily: timestamp('last_daily'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 `;

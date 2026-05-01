@@ -24,8 +24,18 @@ export async function loadCommands(client: Client): Promise<void> {
 
     for (const file of files) {
       const filePath = join(entryPath, file);
+${hasPrefixCommands ? `
+      // Prefix commands live in commands/prefix/ and use a default export
+      if (entry === 'prefix') {
+        const mod = await import(pathToFileURL(filePath).href) as { default?: PrefixCommand };
+        const cmd = mod.default;
+        if (cmd?.name && cmd?.execute) {
+          client.prefixCommands.set(cmd.name, cmd);
+        }
+        continue;
+      }
+` : ''}${hasSlashCommands ? `
       const mod = await import(pathToFileURL(filePath).href) as Record<string, unknown>;
-${hasSlashCommands ? `
       if ('data' in mod && 'execute' in mod) {
         const command = mod as unknown as Command;
         client.commands.set(command.data.name, command);
