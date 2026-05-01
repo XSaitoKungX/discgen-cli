@@ -6,6 +6,16 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.3] — 2026-05-01
+
+### Changed
+
+- Generated bot dependencies updated to current latest versions: `discord.js@^14.26.3`, `dotenv@^17.4.2`, `typescript@^5.9.3`, `tsx@^4.21.0`, `tsup@^8.5.1`, `eslint@^9.39.4`, `@typescript-eslint@^8.59.1`, `prettier@^3.8.3`, `better-sqlite3@^12.9.0`, `drizzle-orm@^0.45.2`, `pg@^8.20.0`
+- Generated bot Node.js engine requirement bumped to `>=22` (LTS)
+- README updated to use `banner.png` + `icon.png` from assets
+
+---
+
 ## [1.3.2] — 2026-05-01
 
 ### Fixed

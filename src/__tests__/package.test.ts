@@ -49,8 +49,8 @@ describe('generatePackageJson', () => {
     expect(pkg.scripts['deploy']).toBeDefined();
   });
 
-  it('sets engines.node to >=18', () => {
+  it('sets engines.node to >=22', () => {
     const pkg = generatePackageJson(baseOpts);
-    expect(pkg.engines['node']).toBe('>=18');
+    expect(pkg.engines['node']).toBe('>=22');
   });
 });

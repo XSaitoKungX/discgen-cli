@@ -1,6 +1,11 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/XSaitoKungX/discgen-cli/main/assets/logo.svg" alt="discgen-cli logo" width="160" height="160" />
+<img src="https://raw.githubusercontent.com/XSaitoKungX/discgen-cli/main/assets/banner.png" alt="discgen-cli banner" width="100%" />
+
+<br />
+<br />
+
+<img src="https://raw.githubusercontent.com/XSaitoKungX/discgen-cli/main/assets/icon.png" alt="discgen-cli icon" width="80" height="80" />
 
 <h1>discgen-cli</h1>
 
@@ -361,7 +366,7 @@ npm run dev       # start bot in watch mode
 |---|---|
 | Language | TypeScript (strict mode) |
 | Discord | discord.js v14 + Components v2 |
-| Runtime | Node.js >= 18 |
+| Runtime | Node.js >= 22 |
 | Build | tsup (ESM + CJS) |
 | Lint | ESLint 10 flat config + @typescript-eslint v8 |
 | Format | Prettier 3 |
@@ -372,7 +377,7 @@ npm run dev       # start bot in watch mode
 
 ## 📋 Requirements
 
-- **Node.js >= 18** — checked on startup, exits with a clear error if too old
+- **Node.js >= 22** — LTS, checked on startup, exits with a clear error if too old
 - **A Discord Bot Token** — [Discord Developer Portal →](https://discord.com/developers/applications)
 
 ---
