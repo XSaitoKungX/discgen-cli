@@ -31,7 +31,7 @@ const PRESETS: Record<string, Partial<WizardOptions>> = {
   },
   full: {
     commandType: 'both',
-    features: ['moderation', 'utility', 'fun', 'economy'],
+    features: ['moderation', 'utility', 'fun', 'economy', 'components'],
     database: 'sqlite',
     gitInit: true,
     installDeps: true,

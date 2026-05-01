@@ -1,4 +1,4 @@
-export type Feature = 'moderation' | 'utility' | 'fun' | 'economy' | 'music';
+export type Feature = 'moderation' | 'utility' | 'fun' | 'economy' | 'music' | 'components';
 
 export type Database = 'none' | 'sqlite' | 'postgresql';
 

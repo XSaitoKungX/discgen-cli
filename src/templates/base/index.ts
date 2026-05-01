@@ -1,35 +1,46 @@
 import type { WizardOptions } from '../../types/index.js';
 
 export function generateIndexTs(opts: WizardOptions): string {
+  const needsMessages = opts.commandType === 'prefix' || opts.commandType === 'both';
+
   return `import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import 'dotenv/config';
 import { loadCommands } from './handlers/commandHandler.js';
+import { loadComponents } from './handlers/interactionLoader.js';
 import { loadEvents } from './handlers/eventHandler.js';
 import { logger } from './utils/logger.js';
-import type { Command } from './types/index.js';
+import { env } from './utils/env.js';
+import type { Command, ButtonHandler, SelectHandler, ModalHandler } from './types/index.js';
 
 declare module 'discord.js' {
   interface Client {
     commands: Collection<string, Command>;
+    buttons:  Collection<string, ButtonHandler>;
+    selects:  Collection<string, SelectHandler>;
+    modals:   Collection<string, ModalHandler>;
   }
 }
 
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,${opts.commandType === 'prefix' || opts.commandType === 'both' ? '\n    GatewayIntentBits.GuildMessages,\n    GatewayIntentBits.MessageContent,' : ''}
+    GatewayIntentBits.Guilds,${needsMessages ? '\n    GatewayIntentBits.GuildMessages,\n    GatewayIntentBits.MessageContent,' : ''}
   ],
 });
 
 client.commands = new Collection();
+client.buttons  = new Collection();
+client.selects  = new Collection();
+client.modals   = new Collection();
 
 await loadCommands(client);
+await loadComponents(client);
 await loadEvents(client);
 
 process.on('unhandledRejection', (error) => {
   logger.error('Unhandled promise rejection', error, 'process');
 });
 
-await client.login(process.env.DISCORD_TOKEN);
+await client.login(env.DISCORD_TOKEN);
 logger.info('Connecting to Discord...', 'bot');
 `;
 }

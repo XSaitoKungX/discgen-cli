@@ -19,6 +19,8 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 - [x] `P2` "Next steps" output after scaffolding
 - [x] `P3` `--dry-run` flag to preview generated files without writing
 - [x] `P2` `--template <preset>` flag: `basic` | `moderation` | `full`
+- [x] `P1` `generate` subcommand (`discgen-cli g command|event|guard|button|select|modal <name>`)
+- [x] `P1` Component interactions system (buttons, select menus, modals) with full routing in `interactionCreate`
 
 ---
 
@@ -50,7 +52,7 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 - [x] `P1` `.prettierrc` config
 - [x] `P1` `.gitignore` (node_modules, dist, .env)
 - [x] `P2` `.env.example` with all required variables
-- [x] `P2` `vitest` setup for CLI unit tests (56 tests passing)
+- [x] `P2` `vitest` setup for CLI unit tests (110 tests passing)
 - [x] `P3` GitHub Actions CI workflow in generated project
 - [x] `P2` GitHub Actions CI for discgen-cli repo (Node 18/20/22 matrix)
 - [x] `P2` GitHub Actions Release workflow (auto-publish on `v*` tag)

@@ -6,10 +6,48 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.0] — 2026-05-01
+
+### Added
+
+- **Component interactions system** — generated bots now have full routing for all Discord interaction types:
+  - `src/interactions/buttons/` — button click handlers (`ButtonHandler` interface)
+  - `src/interactions/selects/` — select menu handlers (`SelectHandler` interface)
+  - `src/interactions/modals/` — modal submit handlers (`ModalHandler` interface)
+  - `src/handlers/interactionLoader.ts` — automatically loads all handlers from disk at startup
+  - `client.buttons`, `client.selects`, `client.modals` Collections added to the Discord.js `Client` type
+  - `interactionCreate` event now routes slash commands **and** buttons, selects, and modals — each with isolated error handling and logging
+- **`components` wizard feature** — adds example handlers + a full `/demo` slash command showcasing a Components v2 layout with buttons, select menus, and a modal form; included automatically in the `full` preset
+- **`generate button/select/modal` subcommand** — `discgen-cli g button <name>` / `discgen-cli g select <name>` / `discgen-cli g modal <name>` generates a ready-to-use handler in `src/interactions/`
+  - Short aliases: `btn`/`b`, `sel`/`s`, `m`
+- **`ButtonHandler` / `SelectHandler` / `ModalHandler`** added to generated bot's `src/types/index.ts`
+- **`src/utils/env.ts`** imported in generated `src/index.ts` — `env.DISCORD_TOKEN` used for `client.login()` instead of raw `process.env`
+
+### Changed
+
+- Command type prompt now defaults to **Slash Commands** (Slash is the modern standard); Prefix and Both options remain available
+- `full` preset now includes the `components` feature and uses `commandType: 'both'`
+- Generated `src/handlers/commandHandler.ts` uses `statSync` to robustly skip non-directory entries in the commands folder
+
+### Tests
+
+- 110 tests passing (up from 81)
+
+---
+
 ## [1.2.0] — 2026-05-01
 
 ### Added
 
+- **`discgen-cli generate` subcommand** (alias: `g`) — generate individual files into an existing bot project, similar to `nest generate`:
+  - `discgen-cli g command <name>` — slash command (`export default { data, execute } satisfies Command`)
+  - `discgen-cli g command <name> --prefix` — prefix command (`PrefixCommand` interface)
+  - `discgen-cli g event <name>` — event handler; picks from 15 known Discord events with a select prompt
+  - `discgen-cli g guard <name>` — standalone permission/cooldown guard function
+  - `--category <folder>` — command subfolder (default: `utility`, prompt if omitted)
+  - `--dry-run` — preview path without writing
+  - Overwrite confirmation when target file already exists
+  - Short type aliases: `cmd` / `c`, `evt` / `e`, `gd`
 - **`--template <preset>` flag** — skip the interactive wizard with a preset: `basic`, `moderation`, or `full`
   - `basic` — slash commands, no features, no database
   - `moderation` — slash commands, moderation + utility features, no database
@@ -21,10 +59,11 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - `src/index.ts`: replaced `createRequire(import.meta.url)` (invalid in CJS output) with `readFileSync` + `__dirname` to read version from `package.json`
+- `src/templates/commands/help.ts`: corrected type names (`Command` / `PrefixCommand`) and switched to `export default { data, execute } satisfies Command` pattern matching all other command templates
 
 ### Tests
 
-- 56 tests passing (up from 40)
+- 81 tests passing (up from 40)
 
 ---
 

@@ -2,9 +2,9 @@ import type { WizardOptions } from '../../types/index.js';
 
 export function generateCommandHandler(opts: WizardOptions): string {
   const hasPrefixCommands = opts.commandType === 'prefix' || opts.commandType === 'both';
-  const hasSlashCommands = opts.commandType === 'slash' || opts.commandType === 'both';
+  const hasSlashCommands  = opts.commandType === 'slash'  || opts.commandType === 'both';
 
-  return `import { readdirSync } from 'fs';
+  return `import { readdirSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import type { Client } from 'discord.js';
@@ -14,20 +14,61 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export async function loadCommands(client: Client): Promise<void> {
   const commandsPath = join(__dirname, '..', 'commands');
-  const categories = readdirSync(commandsPath);
+  const entries = readdirSync(commandsPath);
 
-  for (const category of categories) {
-    const categoryPath = join(commandsPath, category);
-    const files = readdirSync(categoryPath).filter((f) => f.endsWith('.js'));
+  for (const entry of entries) {
+    const entryPath = join(commandsPath, entry);
+    if (!statSync(entryPath).isDirectory()) continue;
+
+    const files = readdirSync(entryPath).filter((f) => f.endsWith('.js'));
 
     for (const file of files) {
-      const filePath = join(categoryPath, file);
-      const module = await import(pathToFileURL(filePath).href) as Record<string, unknown>;
+      const filePath = join(entryPath, file);
+      const mod = await import(pathToFileURL(filePath).href) as Record<string, unknown>;
 ${hasSlashCommands ? `
-      if ('data' in module && 'execute' in module) {
-        const command = module as Command;
+      if ('data' in mod && 'execute' in mod) {
+        const command = mod as unknown as Command;
         client.commands.set(command.data.name, command);
       }` : ''}
+    }
+  }
+}
+`;
+}
+
+export function generateInteractionLoader(): string {
+  return `import { existsSync, readdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import type { Client } from 'discord.js';
+import type { ButtonHandler, SelectHandler, ModalHandler } from '../types/index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export async function loadComponents(client: Client): Promise<void> {
+  const interactionsPath = join(__dirname, '..', 'interactions');
+  if (!existsSync(interactionsPath)) return;
+
+  const subdirs = readdirSync(interactionsPath);
+
+  for (const subdir of subdirs) {
+    const dirPath = join(interactionsPath, subdir);
+    const files = readdirSync(dirPath).filter((f) => f.endsWith('.js'));
+
+    for (const file of files) {
+      const filePath = join(dirPath, file);
+      const mod = await import(pathToFileURL(filePath).href) as { default: unknown };
+      const handler = mod.default as { customId?: string; execute?: unknown };
+
+      if (!handler?.customId || !handler?.execute) continue;
+
+      if (subdir === 'buttons') {
+        client.buttons.set(handler.customId, handler as ButtonHandler);
+      } else if (subdir === 'selects') {
+        client.selects.set(handler.customId, handler as SelectHandler);
+      } else if (subdir === 'modals') {
+        client.modals.set(handler.customId, handler as ModalHandler);
+      }
     }
   }
 }
@@ -49,12 +90,12 @@ export async function loadEvents(client: Client): Promise<void> {
 
   for (const file of files) {
     const filePath = join(eventsPath, file);
-    const event = await import(pathToFileURL(filePath).href) as Event;
+    const event = await import(pathToFileURL(filePath).href) as { default: Event };
 
-    if (event.once) {
-      client.once(event.name, (...args) => void event.execute(...args));
+    if (event.default.once) {
+      client.once(event.default.name, (...args) => void event.default.execute(...args));
     } else {
-      client.on(event.name, (...args) => void event.execute(...args));
+      client.on(event.default.name, (...args) => void event.default.execute(...args));
     }
   }
 }

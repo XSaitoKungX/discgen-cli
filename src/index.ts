@@ -4,6 +4,7 @@ import { join } from 'path';
 import { Command } from 'commander';
 import { checkNodeVersion } from './utils/validate.js';
 import { runWizard } from './cli/wizard.js';
+import { runGenerate } from './cli/generate.js';
 
 checkNodeVersion();
 
@@ -37,6 +38,32 @@ program
               ? { installDeps: options.install, gitInit: options.git }
               : undefined,
         });
+      } catch (err) {
+        if (err instanceof Error) {
+          console.error(`\nError: ${err.message}`);
+        } else {
+          console.error('\nAn unexpected error occurred.');
+        }
+        process.exit(1);
+      }
+    },
+  );
+
+program
+  .command('generate [type] [name]')
+  .alias('g')
+  .description('Generate a file in an existing project (command | event | guard)')
+  .option('--category <category>', 'Command subfolder, e.g. utility (slash only)')
+  .option('--prefix', 'Generate as a prefix command instead of slash')
+  .option('--dry-run', 'Preview without writing')
+  .action(
+    async (
+      type: string | undefined,
+      name: string | undefined,
+      options: { category?: string; prefix?: boolean; dryRun?: boolean },
+    ) => {
+      try {
+        await runGenerate({ type, name, ...options });
       } catch (err) {
         if (err instanceof Error) {
           console.error(`\nError: ${err.message}`);

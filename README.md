@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/XSaitoKungX/discgen-cli/main/assets/logo.svg" alt="discgen-cli logo" width="180" height="180" />
+<img src="https://raw.githubusercontent.com/XSaitoKungX/discgen-cli/main/assets/logo.svg" alt="discgen-cli logo" width="160" height="160" />
 
 <h1>discgen-cli</h1>
 
@@ -14,7 +14,7 @@
     <img src="https://img.shields.io/npm/dm/discgen-cli?style=for-the-badge&logo=npm&logoColor=white&color=CB3837" alt="npm downloads" />
   </a>
   <a href="https://nodejs.org">
-    <img src="https://img.shields.io/node/v/discgen-cli?style=for-the-badge&logo=nodedotjs&logoColor=white&color=339933" alt="node version" />
+    <img src="https://img.shields.io/node/v/discgen-cli?style=for-the-badge&logo=nodedotjs&logoColor=white&color=339933" alt="Node.js" />
   </a>
   <a href="https://www.typescriptlang.org">
     <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
@@ -23,57 +23,67 @@
     <img src="https://img.shields.io/badge/discord.js-v14-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="discord.js" />
   </a>
   <a href="./LICENSE">
-    <img src="https://img.shields.io/github/license/XSaitoKungX/discgen-cli?style=for-the-badge&color=brightgreen" alt="license" />
+    <img src="https://img.shields.io/github/license/XSaitoKungX/discgen-cli?style=for-the-badge&color=brightgreen" alt="MIT License" />
   </a>
 </p>
 
 <p>
-  <a href="#-installation">Installation</a> ·
   <a href="#-quick-start">Quick Start</a> ·
-  <a href="#-features">Features</a> ·
   <a href="#-what-gets-generated">Generated Output</a> ·
-  <a href="#-flags">Flags</a> ·
+  <a href="#-cli-reference">CLI Reference</a> ·
+  <a href="#-generate-subcommand">generate</a> ·
   <a href="#-contributing">Contributing</a>
 </p>
-
-<br />
 
 </div>
 
 ---
 
+## ✨ Why discgen-cli?
+
+<table>
+  <tr>
+    <td align="center" width="200">
+      <strong>🎛️ Interactive Wizard</strong><br/>
+      Beautiful terminal UI powered by <code>@clack/prompts</code>
+    </td>
+    <td align="center" width="200">
+      <strong>⚡ Components v2</strong><br/>
+      Modern Discord UI — containers, sections, thumbnails — no legacy embeds
+    </td>
+    <td align="center" width="200">
+      <strong>🔘 Interactions</strong><br/>
+      Full routing for buttons, select menus &amp; modals out of the box
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="200">
+      <strong>🛠️ generate</strong><br/>
+      Add commands, events, buttons, modals &amp; more to an existing project with one command
+    </td>
+    <td align="center" width="200">
+      <strong>🗃️ Database Ready</strong><br/>
+      SQLite <em>(better-sqlite3)</em> or PostgreSQL <em>(drizzle-orm)</em> wired from day one
+    </td>
+    <td align="center" width="200">
+      <strong>🚀 TypeScript Strict</strong><br/>
+      Full strict mode, ESLint 10, Prettier — zero config needed
+    </td>
+  </tr>
+</table>
+
+---
+
 ## 📦 Installation
 
-### Option A — No install (recommended)
-
 ```bash
+# No install needed — always uses latest version
 npx discgen-cli my-bot
-```
 
-Always uses the latest version. No global install needed.
-
-### Option B — Global install
-
-```bash
+# Or install globally
 npm install -g discgen-cli
-
-# then use it anywhere:
 discgen-cli my-bot
-discgen-cli          # wizard asks for the name
-discgen-cli --version
-discgen-cli --help
 ```
-
-### Option C — Local project dependency
-
-```bash
-npm install discgen-cli
-
-# run via npx or package.json script:
-npx discgen-cli my-bot
-```
-
-> **Note:** `discgen-cli` is a **CLI scaffolding tool**, not a runtime library. You don't `require()`/`import` it — just run it as a command.
 
 ---
 
@@ -83,54 +93,24 @@ npx discgen-cli my-bot
 npx discgen-cli my-bot
 ```
 
-The interactive wizard takes over from there — no config files to edit upfront.
+The wizard asks you 6 questions and scaffolds everything — including CI/CD, a logger, env validation, and component interaction handlers.
 
 ```bash
-# let the wizard ask for the project name
+# Let the wizard ask for the name
 npx discgen-cli
 
-# preview every file without writing anything
+# Preview every file that would be written — nothing touches the disk
 npx discgen-cli my-bot --dry-run
+
+# Skip wizard with a preset
+npx discgen-cli my-bot --template basic
+npx discgen-cli my-bot --template moderation
+npx discgen-cli my-bot --template full
 ```
 
 ---
 
-## ✨ Features
-
-<table>
-  <tr>
-    <td align="center" width="200">
-      <h3>🎛️ Interactive Wizard</h3>
-      <p>Beautiful terminal UI powered by <code>@clack/prompts</code> — feels like <code>create-vite</code></p>
-    </td>
-    <td align="center" width="200">
-      <h3>⚡ Components v2</h3>
-      <p>All UI uses Discord's modern Components v2 API — no legacy Embeds</p>
-    </td>
-    <td align="center" width="200">
-      <h3>🗃️ Database Ready</h3>
-      <p>Choose SQLite <em>(better-sqlite3)</em> or PostgreSQL <em>(drizzle-orm)</em> — wired up from day one</p>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="200">
-      <h3>🔧 DX First</h3>
-      <p>ESLint 10, Prettier, strict TypeScript 6, tsup build — zero config needed</p>
-    </td>
-    <td align="center" width="200">
-      <h3>📦 Auto Install</h3>
-      <p>Detects your package manager (npm / pnpm / bun) and installs deps automatically</p>
-    </td>
-    <td align="center" width="200">
-      <h3>🔍 Dry Run</h3>
-      <p>Preview every file that would be generated — before writing a single byte</p>
-    </td>
-  </tr>
-</table>
-
----
-
-## 🎬 Demo
+## 🎬 Wizard Demo
 
 ```text
 ┌  discgen-cli — Scaffold a Discord Bot in seconds
@@ -139,13 +119,13 @@ npx discgen-cli my-bot --dry-run
 │  my-bot
 │
 ◇  Command type
-│  Slash Commands
+│  Slash Commands (recommended)
 │
 ◆  Select features
-│  ◼ Moderation  ◼ Utility  ◻ Fun  ◻ Economy  ◻ Music
+│  ◼ Moderation  ◼ Utility  ◼ Components  ◻ Fun  ◻ Economy  ◻ Music
 │
 ◇  Database
-│  None
+│  SQLite
 │
 ◇  Package manager
 │  npm
@@ -176,19 +156,34 @@ npx discgen-cli my-bot --dry-run
 my-bot/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml              ← Node 18 / 20 / 22 matrix
+│       └── ci.yml                     ← Node 20 / 22 CI matrix
 ├── src/
 │   ├── commands/
-│   │   ├── moderation/         ← ban, kick, timeout, warn
-│   │   └── utility/            ← ping, userinfo, serverinfo
+│   │   ├── moderation/                ← ban, kick, timeout, warn
+│   │   └── utility/                   ← ping, help, userinfo, serverinfo
 │   ├── events/
 │   │   ├── ready.ts
-│   │   └── interactionCreate.ts
+│   │   └── interactionCreate.ts       ← routes slash, buttons, selects, modals
 │   ├── handlers/
-│   │   ├── commandHandler.ts   ← auto-loads all commands
-│   │   └── eventHandler.ts     ← auto-loads all events
+│   │   ├── commandHandler.ts          ← auto-loads all commands
+│   │   ├── interactionLoader.ts       ← auto-loads all component handlers
+│   │   └── eventHandler.ts            ← auto-loads all events
+│   ├── interactions/                  ← when "Components" feature is selected
+│   │   ├── buttons/
+│   │   │   ├── example-button.ts
+│   │   │   └── open-modal.ts          ← opens a modal on click
+│   │   ├── selects/
+│   │   │   └── example-select.ts
+│   │   └── modals/
+│   │       └── example-modal.ts
 │   ├── types/
-│   │   └── index.ts            ← Command & Event interfaces
+│   │   └── index.ts                   ← Command, Event, ButtonHandler, SelectHandler, ModalHandler
+│   ├── utils/
+│   │   ├── logger.ts                  ← zero-dep ANSI logger (debug/info/warn/error)
+│   │   ├── env.ts                     ← typed env validator — exits on missing vars
+│   │   └── cooldown.ts                ← per-user command cooldown with auto-cleanup
+│   ├── database/
+│   │   └── index.ts                   ← SQLite or PostgreSQL setup (if selected)
 │   ├── deploy-commands.ts
 │   └── index.ts
 ├── .env.example
@@ -204,87 +199,123 @@ my-bot/
 
 ## 🧩 Wizard Options
 
-| Prompt          | Choices                                        |
-|-----------------|------------------------------------------------|
-| Command type    | Slash Commands · Prefix Commands · Both        |
-| Features        | Moderation · Utility · Fun · Economy · Music   |
-| Database        | None · SQLite · PostgreSQL                     |
-| Package manager | npm · pnpm · bun (auto-detected)               |
-| Git init        | Yes · No                                       |
-| Install deps    | Yes · No                                       |
+| Prompt          | Choices |
+|-----------------|---------|
+| Command type    | **Slash** (recommended) · Prefix · Both |
+| Features        | Moderation · Utility · **Components** · Fun · Economy · Music |
+| Database        | None · SQLite · PostgreSQL |
+| Package manager | npm · pnpm · bun (auto-detected) |
+| Git init        | Yes · No |
+| Install deps    | Yes · No |
+
+### `--template` Presets
+
+Skip the wizard entirely with a preset:
+
+| Preset | Command type | Features | Database |
+|---|---|---|---|
+| `basic` | Slash | — | None |
+| `moderation` | Slash | Moderation, Utility | None |
+| `full` | Both | Moderation, Utility, Fun, Economy, **Components** | SQLite |
 
 ---
 
-## 🚩 Flags
+## 🚩 CLI Reference
 
-| Flag            | Description                                          |
-|-----------------|------------------------------------------------------|
-| `--no-install`  | Skip dependency installation                         |
-| `--no-git`      | Skip git initialization                              |
-| `--dry-run`     | Preview generated files without writing to disk      |
-| `--version`     | Print version                                        |
-| `--help`        | Show help                                            |
+### Create a new project
 
 ```bash
-# Preview what would be generated — nothing is written
-npx discgen-cli my-bot --dry-run
+discgen-cli [name] [flags]
 
-# Skip install and git in one go
-npx discgen-cli my-bot --no-install --no-git
+Flags:
+  --template <preset>   Skip wizard: basic | moderation | full
+  --no-install          Skip dependency installation
+  --no-git              Skip git initialization
+  --dry-run             Preview generated files without writing
+  --version             Print version
+  --help                Show help
+```
+
+### Add files to an existing project — `generate`
+
+```bash
+discgen-cli generate <type> [name] [flags]
+discgen-cli g <type> [name] [flags]        # short alias
 ```
 
 ---
 
-## 🛠️ Generated Bot: Tech Stack
+## ⚡ `generate` Subcommand
 
-<table>
-  <tr>
-    <th>Layer</th>
-    <th>Technology</th>
-  </tr>
-  <tr>
-    <td>Language</td>
-    <td>
-      <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
-    </td>
-  </tr>
-  <tr>
-    <td>Discord</td>
-    <td>
-      <img src="https://img.shields.io/badge/discord.js-v14-5865F2?style=flat-square&logo=discord&logoColor=white" alt="discord.js" />
-      &nbsp;+ Components v2
-    </td>
-  </tr>
-  <tr>
-    <td>Runtime</td>
-    <td>
-      <img src="https://img.shields.io/badge/Node.js-%3E%3D18-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js" />
-    </td>
-  </tr>
-  <tr>
-    <td>Build</td>
-    <td>
-      <img src="https://img.shields.io/badge/tsup-bundler-yellow?style=flat-square" alt="tsup" />
-    </td>
-  </tr>
-  <tr>
-    <td>Lint</td>
-    <td>
-      <img src="https://img.shields.io/badge/ESLint-10-4B32C3?style=flat-square&logo=eslint&logoColor=white" alt="ESLint" />
-      &nbsp;flat config + @typescript-eslint v8
-    </td>
-  </tr>
-  <tr>
-    <td>Format</td>
-    <td>
-      <img src="https://img.shields.io/badge/Prettier-3-F7B93E?style=flat-square&logo=prettier&logoColor=black" alt="Prettier" />
-    </td>
-  </tr>
-  <tr>
-    <td>Database</td>
-    <td>SQLite <em>(better-sqlite3)</em> &nbsp;or&nbsp; PostgreSQL <em>(pg + drizzle-orm)</em></td>
-  </tr>
-</table>
+Add individual files to an **existing** bot project — like `nest generate` for NestJS.
+
+### Commands
+
+```bash
+discgen-cli g command greet                  # slash command → src/commands/utility/greet.ts
+discgen-cli g command ban --category moderation  # custom subfolder
+discgen-cli g command greet --prefix         # prefix command → src/commands/prefix/greet.ts
+```
+
+### Events
+
+```bash
+discgen-cli g event guildMemberAdd           # → src/events/guildMemberAdd.ts
+discgen-cli g event                          # interactive: pick from 15 known Discord events
+```
+
+### Component Interactions
+
+```bash
+discgen-cli g button confirm                 # → src/interactions/buttons/confirm.ts
+discgen-cli g select role-picker             # → src/interactions/selects/role-picker.ts
+discgen-cli g modal feedback                 # → src/interactions/modals/feedback.ts
+```
+
+### Guards
+
+```bash
+discgen-cli g guard permissions              # → src/guards/permissions.ts
+```
+
+### Type aliases
+
+| Full name | Aliases |
+|---|---|
+| `command` | `cmd`, `c` |
+| `event` | `evt`, `e` |
+| `button` | `btn`, `b` |
+| `select` | `sel`, `s` |
+| `modal` | `m` |
+| `guard` | `gd` |
+
+```bash
+# All equivalent
+discgen-cli g command greet
+discgen-cli g cmd greet
+discgen-cli g c greet
+
+# Dry-run: preview path without writing
+discgen-cli g button confirm --dry-run
+```
+
+---
+
+## 🔘 Component Interactions (in generated bots)
+
+When you select the **Components** feature, your bot is scaffolded with a complete interaction system:
+
+```
+interactionCreate.ts
+  ├── isChatInputCommand()  → client.commands   (slash commands)
+  ├── isButton()            → client.buttons    (button clicks)
+  ├── isAnySelectMenu()     → client.selects    (select menus)
+  └── isModalSubmit()       → client.modals     (modal forms)
+```
+
+Handlers are auto-loaded from `src/interactions/` on startup — add a file, it just works.
+
+A full `/demo` slash command is included that sends a **Components v2** layout with a button, select menu, and a "Open Form" button that triggers a modal.
 
 ---
 
@@ -292,46 +323,73 @@ npx discgen-cli my-bot --no-install --no-git
 
 ```bash
 cd my-bot
-cp .env.example .env   # fill in DISCORD_TOKEN + CLIENT_ID
-npm run deploy         # register slash commands with Discord
-npm run dev            # start bot in watch mode
+cp .env.example .env
+```
+
+Open `.env` and fill in your credentials from the [Discord Developer Portal](https://discord.com/developers/applications):
+
+```env
+DISCORD_TOKEN=your_bot_token_here
+CLIENT_ID=your_application_id_here
+GUILD_ID=your_server_id_here        # for guild-scoped slash command deploys
+```
+
+```bash
+npm run deploy    # register slash commands with Discord
+npm run dev       # start bot in watch mode
 ```
 
 <details>
-<summary>📋 All available scripts in the generated bot</summary>
+<summary>📋 All scripts in the generated bot</summary>
 
-| Script           | Description                          |
-|------------------|--------------------------------------|
-| `npm run dev`    | Start bot in watch mode (tsx)        |
-| `npm run build`  | Compile TypeScript → dist/           |
-| `npm start`      | Run compiled bot                     |
+| Script | Description |
+|---|---|
+| `npm run dev` | Start bot in watch mode (tsx watch) |
+| `npm run build` | Compile TypeScript → dist/ |
+| `npm start` | Run compiled bot from dist/ |
 | `npm run deploy` | Register slash commands with Discord |
-| `npm run lint`   | Run ESLint                           |
-| `npm run format` | Format with Prettier                 |
+| `npm run lint` | Run ESLint |
+| `npm run format` | Format with Prettier |
 
 </details>
 
 ---
 
+## 🛠️ Generated Bot: Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | TypeScript (strict mode) |
+| Discord | discord.js v14 + Components v2 |
+| Runtime | Node.js >= 18 |
+| Build | tsup (ESM + CJS) |
+| Lint | ESLint 10 flat config + @typescript-eslint v8 |
+| Format | Prettier 3 |
+| Database | better-sqlite3 or pg + drizzle-orm |
+| CI | GitHub Actions (Node 20 / 22 matrix) |
+
+---
+
 ## 📋 Requirements
 
-- **Node.js >= 18** — checked automatically, exits with a clear error if too old
+- **Node.js >= 18** — checked on startup, exits with a clear error if too old
 - **A Discord Bot Token** — [Discord Developer Portal →](https://discord.com/developers/applications)
 
 ---
 
 ## 🤝 Contributing
 
-Pull requests are welcome! Check [TODO.md](./TODO.md) for open tasks and [CHANGELOG.md](./CHANGELOG.md) for what's new.
+Pull requests are welcome! See [TODO.md](./TODO.md) for open tasks and [CHANGELOG.md](./CHANGELOG.md) for what's changed.
 
 ```bash
 git clone https://github.com/XSaitoKungX/discgen-cli
 cd discgen-cli
 npm install
 
-npm run dev      # run CLI locally
-npm run test     # run 32 unit tests
-npm run build    # compile to dist/
+npm run dev        # run CLI locally with tsx
+npm run test       # run 110 unit tests
+npm run build      # compile to dist/
+npm run lint       # ESLint
 ```
 
 1. Fork the repo
@@ -352,7 +410,7 @@ MIT © [xsaitox](https://xsaitox.dev)
 **Built with ❤️ for the Discord developer community**
 
 <a href="https://www.npmjs.com/package/discgen-cli">
-  <img src="https://img.shields.io/badge/Get%20it%20on-npm-CB3837?style=for-the-badge&logo=npm&logoColor=white" alt="Get it on npm" />
+  <img src="https://img.shields.io/badge/Get%20it%20on-npm-CB3837?style=for-the-badge&logo=npm&logoColor=white" alt="npm" />
 </a>
 
 </div>

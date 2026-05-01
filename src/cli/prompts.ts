@@ -20,9 +20,9 @@ export async function runPrompts(initialName?: string): Promise<WizardOptions> {
   const commandType = await p.select<CommandType>({
     message: 'Command type:',
     options: [
-      { value: 'slash', label: 'Slash Commands', hint: 'Modern / interactions' },
+      { value: 'slash',  label: 'Slash Commands', hint: 'Modern / interactions (recommended)' },
       { value: 'prefix', label: 'Prefix Commands', hint: 'Classic !command style' },
-      { value: 'both', label: 'Both', hint: 'Slash + Prefix' },
+      { value: 'both',   label: 'Both',            hint: 'Slash + Prefix' },
     ],
   });
 
@@ -35,10 +35,11 @@ export async function runPrompts(initialName?: string): Promise<WizardOptions> {
     message: 'Select features:',
     options: [
       { value: 'moderation', label: 'Moderation', hint: 'ban, kick, timeout, warn' },
-      { value: 'utility', label: 'Utility', hint: 'ping, userinfo, serverinfo' },
-      { value: 'fun', label: 'Fun', hint: 'coinflip, 8ball, meme' },
-      { value: 'economy', label: 'Economy', hint: 'balance, daily, leaderboard' },
-      { value: 'music', label: 'Music', hint: 'placeholder (requires voice deps)' },
+      { value: 'utility',    label: 'Utility',    hint: 'ping, userinfo, serverinfo' },
+      { value: 'fun',        label: 'Fun',         hint: 'coinflip, 8ball, meme' },
+      { value: 'economy',    label: 'Economy',     hint: 'balance, daily, leaderboard' },
+      { value: 'components', label: 'Components',  hint: 'buttons, select menus, modals + demo command' },
+      { value: 'music',      label: 'Music',       hint: 'placeholder (requires voice deps)' },
     ],
     required: false,
   });
@@ -51,9 +52,9 @@ export async function runPrompts(initialName?: string): Promise<WizardOptions> {
   const database = await p.select<Database>({
     message: 'Database:',
     options: [
-      { value: 'none', label: 'None' },
-      { value: 'sqlite', label: 'SQLite', hint: 'better-sqlite3' },
-      { value: 'postgresql', label: 'PostgreSQL', hint: 'pg + drizzle-orm' },
+      { value: 'none',       label: 'None' },
+      { value: 'sqlite',     label: 'SQLite',      hint: 'better-sqlite3' },
+      { value: 'postgresql', label: 'PostgreSQL',  hint: 'pg + drizzle-orm' },
     ],
   });
 
@@ -65,9 +66,9 @@ export async function runPrompts(initialName?: string): Promise<WizardOptions> {
   const packageManager = await p.select<PackageManager>({
     message: 'Package manager:',
     options: [
-      { value: 'npm', label: 'npm' },
+      { value: 'npm',  label: 'npm' },
       { value: 'pnpm', label: 'pnpm' },
-      { value: 'bun', label: 'bun' },
+      { value: 'bun',  label: 'bun' },
     ],
   });
 
@@ -89,12 +90,12 @@ export async function runPrompts(initialName?: string): Promise<WizardOptions> {
   }
 
   return {
-    projectName: projectName as string,
-    commandType: commandType as CommandType,
-    features: features as Feature[],
-    database: database as Database,
+    projectName:    projectName as string,
+    commandType:    commandType as CommandType,
+    features:       features as Feature[],
+    database:       database as Database,
     packageManager: packageManager as PackageManager,
-    gitInit: gitInit as boolean,
-    installDeps: installDeps as boolean,
+    gitInit:        gitInit as boolean,
+    installDeps:    installDeps as boolean,
   };
 }
