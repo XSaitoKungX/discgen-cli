@@ -8,7 +8,7 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 ## CLI Core
 
 - [x] `P1` Interactive wizard with `@clack/prompts`
-- [x] `P1` Argument parsing via `commander` (`--name`, `--no-install`, `--no-git`)
+- [x] `P1` Argument parsing via `commander` (`--name`, `--no-install`, `--no-git`, `--template`)
 - [x] `P1` File scaffolding with `fs-extra`
 - [x] `P1` Template system for all generated files
 - [x] `P1` Package manager detection (`npm` / `pnpm` / `bun`)
@@ -18,6 +18,7 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 - [x] `P2` Node.js version check (>= 18), exit with clear error if too old
 - [x] `P2` "Next steps" output after scaffolding
 - [x] `P3` `--dry-run` flag to preview generated files without writing
+- [x] `P2` `--template <preset>` flag: `basic` | `moderation` | `full`
 
 ---
 
@@ -36,6 +37,9 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 - [x] `P2` Auto-generated `README.md` per project
 - [x] `P3` Auto-generated `deploy-commands.ts` script
 - [x] `P2` Logger utility (`src/utils/logger.ts`) — zero-dependency, log levels, colors, context, stderr/stdout
+- [x] `P2` Env validator utility (`src/utils/env.ts`) — typed env check on startup, exits with clear error
+- [x] `P2` Cooldown utility (`src/utils/cooldown.ts`) — per-user command cooldown with auto-cleanup
+- [x] `P2` Help command (`src/commands/utility/help.ts`) — Components v2 for slash bots
 
 ---
 
@@ -46,7 +50,7 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 - [x] `P1` `.prettierrc` config
 - [x] `P1` `.gitignore` (node_modules, dist, .env)
 - [x] `P2` `.env.example` with all required variables
-- [x] `P2` `vitest` setup for CLI unit tests (40 tests passing)
+- [x] `P2` `vitest` setup for CLI unit tests (56 tests passing)
 - [x] `P3` GitHub Actions CI workflow in generated project
 - [x] `P2` GitHub Actions CI for discgen-cli repo (Node 18/20/22 matrix)
 - [x] `P2` GitHub Actions Release workflow (auto-publish on `v*` tag)
@@ -56,7 +60,7 @@ Priorities: `P1` critical · `P2` important · `P3` nice to have
 ## Publishing
 
 - [x] `P2` Publish to npm as `discgen-cli`
-- [ ] `P2` GitHub Releases with changelog (automated via release.yml from v1.1.0)
+- [ ] `P2` GitHub Releases with changelog (automated via release.yml from v1.1.1)
 - [x] `P2` npm README with usage demo
 - [ ] `P3` Website page on xsaitox.dev
 

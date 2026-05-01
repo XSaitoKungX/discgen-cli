@@ -10,8 +10,33 @@ import type { WizardOptions } from '../types/index.js';
 interface WizardInput {
   initialName?: string;
   dryRun?: boolean;
+  template?: string;
   skipPrompts?: Partial<WizardOptions>;
 }
+
+const PRESETS: Record<string, Partial<WizardOptions>> = {
+  basic: {
+    commandType: 'slash',
+    features: [],
+    database: 'none',
+    gitInit: true,
+    installDeps: true,
+  },
+  moderation: {
+    commandType: 'slash',
+    features: ['moderation', 'utility'],
+    database: 'none',
+    gitInit: true,
+    installDeps: true,
+  },
+  full: {
+    commandType: 'both',
+    features: ['moderation', 'utility', 'fun', 'economy'],
+    database: 'sqlite',
+    gitInit: true,
+    installDeps: true,
+  },
+};
 
 export async function runWizard(input: WizardInput = {}): Promise<void> {
   p.intro('discgen-cli — Scaffold a Discord Bot in seconds');
@@ -19,7 +44,22 @@ export async function runWizard(input: WizardInput = {}): Promise<void> {
   const detectedPm = await detectPackageManager();
 
   let opts: WizardOptions;
-  if (input.skipPrompts && isComplete(input.skipPrompts)) {
+
+  if (input.template) {
+    const preset = PRESETS[input.template];
+    if (!preset) {
+      p.log.warn(`Unknown template "${input.template}". Choose: basic | moderation | full`);
+      p.cancel('Aborted.');
+      process.exit(1);
+    }
+    const projectName = input.initialName ?? 'my-discord-bot';
+    opts = {
+      projectName,
+      packageManager: detectedPm,
+      ...preset,
+    } as WizardOptions;
+    p.log.info(`Using preset: ${input.template}`);
+  } else if (input.skipPrompts && isComplete(input.skipPrompts)) {
     opts = input.skipPrompts as WizardOptions;
   } else {
     opts = await runPrompts(input.initialName);
