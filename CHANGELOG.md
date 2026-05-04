@@ -6,6 +6,45 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.5.0] — 2026-05-04
+
+### Added
+
+- **`src/utils/embed.ts`** — typed `Embed.success/error/info/warn/default()` builder with consistent colour palette, optional fields, footer, thumbnail and timestamp; included in every generated project automatically
+- **`src/utils/paginator.ts`** — reusable embed paginator using Components v2 (`ContainerBuilder`, `TextDisplayBuilder`, `SeparatorBuilder`); ⏮◀ X/Y ▶⏭ navigation, idle timeout, per-user collector, auto-disables on end; exported `Page` interface
+- **i18n feature** — wizard-selectable `i18n` option generates:
+  - `src/i18n/en.ts` — typed `Locale` interface + full English locale (`as const` pattern replaced with explicit interface for type safety)
+  - `src/i18n/de.ts` — German locale satisfying `Locale` type
+  - `src/i18n/index.ts` — `useT(guildId)`, `setGuildLocale()`, `getLocale()`, `supportedLocales`
+  - `src/commands/utility/locale.ts` — `/locale` slash command with `ManageGuild` permission
+- **Yarn support** — package manager detection now recognises `yarn.lock` and generates correct install commands
+- **`PackageManager` type** extended with `'yarn'`
+- **`Feature` type** extended with `'i18n'`
+
+### Changed
+
+- **Native `node:fs/promises`** replaces `fs-extra` — `ensureDir` → `fs.mkdir({ recursive: true })`, `removeDir` → `fs.rm({ recursive: true, force: true })`; zero external dependency
+- **Native lockfile sniffing** replaces `detect-package-manager` — checks `bun.lock`, `bun.lockb`, `pnpm-lock.yaml`, `yarn.lock` in order; synchronous, zero dependency
+- **`fs-extra`**, **`detect-package-manager`** and **`@types/fs-extra`** removed from `dependencies`
+
+### Fixed
+
+- **26 TypeScript errors in generated full-bot** fixed:
+  - `Command.data` type widened to `SlashCommandBuilder | SlashCommandOptionsOnlyBuilder` — `.addXOption()` chains return the narrower type
+  - All event `execute` signatures changed to `(...args: unknown[])` with internal casts — matches the dynamic event loader's spread call
+  - `ping.ts` null-safe resource access: `sent.resource?.message?.createdTimestamp`
+  - `paginator.ts` null-safe reply handle: `reply.resource?.message`
+  - `handlers.ts` always-true condition `cmd?.execute` removed
+  - `database/index.ts` BetterSqlite3 export type: explicit `db: BetterSqlite3Database` annotation
+  - `i18n/de.ts` literal-type issue: `as const` replaced with explicit `interface Locale`
+- **`--template + --no-install/--no-git` bug** — preset path in wizard now correctly applies `skipPrompts` overrides after spreading the preset, so `--no-install` and `--no-git` flags are respected even when a `--template` preset is used
+
+### Tests
+
+- 184 tests passing (up from 153)
+
+---
+
 ## [1.4.0-hotfix.2] — 2026-05-01
 
 ### Fixed
