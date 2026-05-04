@@ -1,5 +1,5 @@
-import fs from 'fs-extra';
-import path from 'path';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import type { WizardOptions } from '../types/index.js';
 import { generatePackageJson } from './package.js';
 import {
@@ -17,6 +17,9 @@ import { generateCiWorkflow } from '../templates/base/ci.js';
 import { generateLoggerTs } from '../templates/base/logger.js';
 import { generateEnvValidatorTs } from '../templates/base/env.js';
 import { generateCooldownTs } from '../templates/base/cooldown.js';
+import { generateEmbedTs } from '../templates/base/embed.js';
+import { generatePaginatorTs } from '../templates/base/paginator.js';
+import { generateLocaleEn, generateLocaleDe, generateI18nIndex, generateLocaleSwitchCommand } from '../templates/i18n/index.js';
 import { generateReadyEvent, generateInteractionCreateEvent, generateMessageCreateEvent } from '../templates/events/index.js';
 import { generatePingCommand, generateUserinfoCommand, generateServerinfoCommand, generateAvatarCommand } from '../templates/commands/utility.js';
 import { generateHelpCommand } from '../templates/commands/help.js';
@@ -34,6 +37,25 @@ interface FileEntry {
   filePath: string;
   content: string;
 }
+
+async function ensureDir(dir: string): Promise<void> {
+  await fs.mkdir(dir, { recursive: true });
+}
+
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function removeDir(dir: string): Promise<void> {
+  await fs.rm(dir, { recursive: true, force: true });
+}
+
+export { pathExists };
 
 function buildFileList(opts: WizardOptions, projectDir: string): FileEntry[] {
   const files: FileEntry[] = [];
@@ -61,8 +83,8 @@ function buildFileList(opts: WizardOptions, projectDir: string): FileEntry[] {
   add('src/handlers/eventHandler.ts',      generateEventHandler());
 
   // ── Entry point ────────────────────────────────────────────────────────────
-  add('src/index.ts',         generateIndexTs(opts));
-  add('src/types/index.ts',   generateTypesTs());
+  add('src/index.ts',           generateIndexTs(opts));
+  add('src/types/index.ts',     generateTypesTs());
   add('src/deploy-commands.ts', generateDeployCommandsTs());
 
   // ── Events ─────────────────────────────────────────────────────────────────
@@ -104,11 +126,19 @@ function buildFileList(opts: WizardOptions, projectDir: string): FileEntry[] {
 
   // ── Component interactions ─────────────────────────────────────────────────
   if (opts.features.includes('components')) {
-    add('src/commands/utility/demo.ts',             generateDemoCommand());
+    add('src/commands/utility/demo.ts',               generateDemoCommand());
     add('src/interactions/buttons/example-button.ts', generateExampleButton());
     add('src/interactions/buttons/open-modal.ts',     generateOpenModalButton());
     add('src/interactions/selects/example-select.ts', generateExampleSelect());
     add('src/interactions/modals/example-modal.ts',   generateExampleModal());
+  }
+
+  // ── i18n ───────────────────────────────────────────────────────────────────
+  if (opts.features.includes('i18n')) {
+    add('src/i18n/en.ts',    generateLocaleEn());
+    add('src/i18n/de.ts',    generateLocaleDe());
+    add('src/i18n/index.ts', generateI18nIndex());
+    add('src/commands/utility/locale.ts', generateLocaleSwitchCommand());
   }
 
   // ── Database ───────────────────────────────────────────────────────────────
@@ -117,9 +147,11 @@ function buildFileList(opts: WizardOptions, projectDir: string): FileEntry[] {
   }
 
   // ── Utilities ──────────────────────────────────────────────────────────────
-  add('src/utils/logger.ts',   generateLoggerTs());
-  add('src/utils/env.ts',      generateEnvValidatorTs());
-  add('src/utils/cooldown.ts', generateCooldownTs());
+  add('src/utils/logger.ts',    generateLoggerTs());
+  add('src/utils/env.ts',       generateEnvValidatorTs());
+  add('src/utils/cooldown.ts',  generateCooldownTs());
+  add('src/utils/embed.ts',     generateEmbedTs());
+  add('src/utils/paginator.ts', generatePaginatorTs());
 
   // ── CI ─────────────────────────────────────────────────────────────────────
   add('.github/workflows/ci.yml', generateCiWorkflow());
@@ -138,7 +170,7 @@ export async function scaffoldProject(opts: WizardOptions, targetDir: string): P
   }
 
   for (const { filePath, content } of files) {
-    await fs.ensureDir(path.dirname(filePath));
+    await ensureDir(path.dirname(filePath));
     await fs.writeFile(filePath, content, 'utf8');
   }
 }

@@ -13,6 +13,10 @@ describe('getInstallCommand', () => {
   it('returns bun install for bun', () => {
     expect(getInstallCommand('bun')).toBe('bun install');
   });
+
+  it('returns yarn for yarn', () => {
+    expect(getInstallCommand('yarn')).toBe('yarn');
+  });
 });
 
 describe('getRunCommand', () => {
@@ -26,5 +30,9 @@ describe('getRunCommand', () => {
 
   it('returns bun run dev for bun', () => {
     expect(getRunCommand('bun', 'dev')).toBe('bun run dev');
+  });
+
+  it('returns yarn dev for yarn', () => {
+    expect(getRunCommand('yarn', 'dev')).toBe('yarn dev');
   });
 });

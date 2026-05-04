@@ -29,7 +29,7 @@ ${hasPrefixCommands ? `
       if (entry === 'prefix') {
         const mod = await import(pathToFileURL(filePath).href) as { default?: PrefixCommand };
         const cmd = mod.default;
-        if (cmd?.name && cmd?.execute) {
+        if (cmd?.name) {
           client.prefixCommands.set(cmd.name, cmd);
         }
         continue;

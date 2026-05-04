@@ -1,5 +1,11 @@
 export function generateBanCommand(): string {
-  return `import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+  return `import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
 import type { ChatInputCommandInteraction, Client } from 'discord.js';
 import type { Command } from '../../types/index.js';
 
@@ -20,17 +26,29 @@ export async function execute(interaction: ChatInputCommandInteraction, _client:
   const member = interaction.guild?.members.cache.get(target.id);
 
   if (!member) {
-    await interaction.reply({ content: 'User not found in this server.', ephemeral: true });
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('❌ User not found in this server.'))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
     return;
   }
 
   if (!member.bannable) {
-    await interaction.reply({ content: 'I cannot ban this user.', ephemeral: true });
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('❌ I cannot ban this user.'))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
     return;
   }
 
   await member.ban({ reason });
-  await interaction.reply(\`✅ Banned **\${target.tag}** | Reason: \${reason}\`);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`✅ Banned **\${target.tag}**\\n**Reason:** \${reason}\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
 }
 
 export default { data, execute } satisfies Command;
@@ -38,7 +56,13 @@ export default { data, execute } satisfies Command;
 }
 
 export function generateKickCommand(): string {
-  return `import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+  return `import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
 import type { ChatInputCommandInteraction, Client } from 'discord.js';
 import type { Command } from '../../types/index.js';
 
@@ -59,17 +83,29 @@ export async function execute(interaction: ChatInputCommandInteraction, _client:
   const member = interaction.guild?.members.cache.get(target.id);
 
   if (!member) {
-    await interaction.reply({ content: 'User not found in this server.', ephemeral: true });
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('❌ User not found in this server.'))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
     return;
   }
 
   if (!member.kickable) {
-    await interaction.reply({ content: 'I cannot kick this user.', ephemeral: true });
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('❌ I cannot kick this user.'))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
     return;
   }
 
   await member.kick(reason);
-  await interaction.reply(\`✅ Kicked **\${target.tag}** | Reason: \${reason}\`);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`✅ Kicked **\${target.tag}**\\n**Reason:** \${reason}\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
 }
 
 export default { data, execute } satisfies Command;
@@ -77,7 +113,13 @@ export default { data, execute } satisfies Command;
 }
 
 export function generateTimeoutCommand(): string {
-  return `import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+  return `import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
 import type { ChatInputCommandInteraction, Client } from 'discord.js';
 import type { Command } from '../../types/index.js';
 
@@ -89,7 +131,12 @@ export const data = new SlashCommandBuilder()
     option.setName('user').setDescription('The user to timeout').setRequired(true),
   )
   .addIntegerOption((option) =>
-    option.setName('minutes').setDescription('Duration in minutes (max 40320)').setRequired(true).setMinValue(1).setMaxValue(40320),
+    option
+      .setName('minutes')
+      .setDescription('Duration in minutes (max 40320)')
+      .setRequired(true)
+      .setMinValue(1)
+      .setMaxValue(40320),
   )
   .addStringOption((option) =>
     option.setName('reason').setDescription('Reason').setRequired(false),
@@ -102,12 +149,23 @@ export async function execute(interaction: ChatInputCommandInteraction, _client:
   const member = interaction.guild?.members.cache.get(target.id);
 
   if (!member) {
-    await interaction.reply({ content: 'User not found in this server.', ephemeral: true });
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('❌ User not found in this server.'))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
     return;
   }
 
   await member.timeout(minutes * 60 * 1000, reason);
-  await interaction.reply(\`✅ Timed out **\${target.tag}** for \${minutes} minute(s) | Reason: \${reason}\`);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        \`✅ Timed out **\${target.tag}** for **\${minutes}** minute(s)\\n**Reason:** \${reason}\`,
+      ),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
 }
 
 export default { data, execute } satisfies Command;
@@ -115,7 +173,13 @@ export default { data, execute } satisfies Command;
 }
 
 export function generateWarnCommand(): string {
-  return `import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+  return `import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
 import type { ChatInputCommandInteraction, Client } from 'discord.js';
 import type { Command } from '../../types/index.js';
 
@@ -134,7 +198,12 @@ export async function execute(interaction: ChatInputCommandInteraction, _client:
   const target = interaction.options.getUser('user', true);
   const reason = interaction.options.getString('reason', true);
 
-  await interaction.reply(\`⚠️ **\${target.tag}** has been warned | Reason: \${reason}\`);
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`⚠️ **\${target.tag}** has been warned\\n**Reason:** \${reason}\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
 }
 
 export default { data, execute } satisfies Command;

@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts';
 import type { WizardOptions, CommandType, Feature, Database, PackageManager } from '../types/index.js';
 
-export async function runPrompts(initialName?: string): Promise<WizardOptions> {
+export async function runPrompts(initialName?: string, detectedPm?: PackageManager): Promise<WizardOptions> {
   const projectName = initialName ?? (await p.text({
     message: 'Project name:',
     placeholder: 'my-discord-bot',
@@ -40,6 +40,7 @@ export async function runPrompts(initialName?: string): Promise<WizardOptions> {
       { value: 'economy',    label: 'Economy',     hint: 'balance, daily, leaderboard' },
       { value: 'components', label: 'Components',  hint: 'buttons, select menus, modals + demo command' },
       { value: 'music',      label: 'Music',       hint: 'placeholder (requires voice deps)' },
+      { value: 'i18n',       label: 'i18n',        hint: 'multi-language support (en + de), useT() helper, /locale command' },
     ],
     required: false,
   });
@@ -63,13 +64,27 @@ export async function runPrompts(initialName?: string): Promise<WizardOptions> {
     process.exit(0);
   }
 
+  const pmOptions: { value: PackageManager; label: string; hint?: string }[] = [
+    { value: 'npm',  label: 'npm' },
+    { value: 'pnpm', label: 'pnpm' },
+    { value: 'bun',  label: 'bun' },
+    { value: 'yarn', label: 'yarn' },
+  ];
+
+  if (detectedPm) {
+    const idx = pmOptions.findIndex((o) => o.value === detectedPm);
+    if (idx > 0) {
+      const [detected] = pmOptions.splice(idx, 1);
+      detected.hint = 'detected';
+      pmOptions.unshift(detected);
+    } else if (idx === 0) {
+      pmOptions[0].hint = 'detected';
+    }
+  }
+
   const packageManager = await p.select<PackageManager>({
     message: 'Package manager:',
-    options: [
-      { value: 'npm',  label: 'npm' },
-      { value: 'pnpm', label: 'pnpm' },
-      { value: 'bun',  label: 'bun' },
-    ],
+    options: pmOptions,
   });
 
   if (p.isCancel(packageManager)) {

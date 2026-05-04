@@ -129,7 +129,7 @@ describe('generateMessageCreateEvent', () => {
     expect(generateMessageCreateEvent()).toContain('client.prefixCommands');
   });
   it('executes the command handler', () => {
-    expect(generateMessageCreateEvent()).toContain('command.execute(message, args, client)');
+    expect(generateMessageCreateEvent()).toContain('command.execute(message, parts, client)');
   });
   it('has try/catch error handling', () => {
     expect(generateMessageCreateEvent()).toContain('catch (error)');

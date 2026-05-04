@@ -81,6 +81,11 @@ describe('command templates', () => {
     expect(generateBanCommand()).toContain('BanMembers');
   });
 
+  it('ban command uses Components v2', () => {
+    expect(generateBanCommand()).toContain('ContainerBuilder');
+    expect(generateBanCommand()).toContain('IsComponentsV2');
+  });
+
   it('coinflip command contains random', () => {
     expect(generateCoinflipCommand()).toContain('Math.random');
   });

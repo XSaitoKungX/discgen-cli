@@ -1,6 +1,7 @@
 export function generateTypesTs(): string {
   return `import type {
   SlashCommandBuilder,
+  SlashCommandOptionsOnlyBuilder,
   ChatInputCommandInteraction,
   ButtonInteraction,
   AnySelectMenuInteraction,
@@ -10,7 +11,7 @@ export function generateTypesTs(): string {
 } from 'discord.js';
 
 export interface Command {
-  data: SlashCommandBuilder;
+  data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
   execute: (interaction: ChatInputCommandInteraction, client: Client) => Promise<void>;
 }
 

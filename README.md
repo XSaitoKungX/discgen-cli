@@ -35,6 +35,7 @@
 <p>
   <a href="#-quick-start">Quick Start</a> ·
   <a href="#-what-gets-generated">Generated Output</a> ·
+  <a href="#-features">Features</a> ·
   <a href="#-cli-reference">CLI Reference</a> ·
   <a href="#-generate-subcommand">generate</a> ·
   <a href="#-contributing">Contributing</a>
@@ -50,29 +51,29 @@
   <tr>
     <td align="center" width="200">
       <strong>🎛️ Interactive Wizard</strong><br/>
-      Beautiful terminal UI powered by <code>@clack/prompts</code>
+      Beautiful terminal UI powered by <code>@clack/prompts</code> — answers 6 questions and you're done
     </td>
     <td align="center" width="200">
       <strong>⚡ Components v2</strong><br/>
-      Modern Discord UI — containers, sections, thumbnails — no legacy embeds
+      Every generated command uses modern Discord UI — containers, sections, thumbnails — no legacy embeds
     </td>
     <td align="center" width="200">
-      <strong>🔘 Interactions</strong><br/>
-      Full routing for buttons, select menus &amp; modals out of the box
+      <strong>🔘 Full Interaction System</strong><br/>
+      Buttons, select menus &amp; modals with auto-loading handlers and typed routing out of the box
     </td>
   </tr>
   <tr>
     <td align="center" width="200">
-      <strong>🛠️ generate</strong><br/>
-      Add commands, events, buttons, modals &amp; more to an existing project with one command
+      <strong>🌐 i18n Ready</strong><br/>
+      TypeScript-native multi-language support — typed <code>useT()</code> helper, <code>/locale</code> command, zero JSON files
     </td>
     <td align="center" width="200">
       <strong>🗃️ Database Ready</strong><br/>
-      SQLite <em>(better-sqlite3)</em> or PostgreSQL <em>(drizzle-orm)</em> wired from day one
+      SQLite <em>(better-sqlite3)</em> or PostgreSQL <em>(drizzle-orm)</em> wired from day one with typed schemas
     </td>
     <td align="center" width="200">
-      <strong>🚀 TypeScript Strict</strong><br/>
-      Full strict mode, ESLint 10, Prettier — zero config needed
+      <strong>🛠️ generate</strong><br/>
+      Add commands, events, buttons, modals, services &amp; more to an existing project with one command
     </td>
   </tr>
 </table>
@@ -90,6 +91,8 @@ npm install -g discgen-cli
 discgen-cli my-bot
 ```
 
+> **Requires Node.js >= 22.** Checked on startup — exits with a clear error if too old.
+
 ---
 
 ## 🚀 Quick Start
@@ -98,7 +101,7 @@ discgen-cli my-bot
 npx discgen-cli my-bot
 ```
 
-The wizard asks you 6 questions and scaffolds everything — including CI/CD, a logger, env validation, and component interaction handlers.
+The wizard asks you 7 questions and scaffolds everything — including CI/CD, a logger, env validation, embed helpers, a paginator, and complete component interaction routing.
 
 ```bash
 # Let the wizard ask for the name
@@ -107,7 +110,7 @@ npx discgen-cli
 # Preview every file that would be written — nothing touches the disk
 npx discgen-cli my-bot --dry-run
 
-# Skip wizard with a preset
+# Skip wizard entirely with a preset
 npx discgen-cli my-bot --template basic
 npx discgen-cli my-bot --template moderation
 npx discgen-cli my-bot --template full
@@ -124,16 +127,16 @@ npx discgen-cli my-bot --template full
 │  my-bot
 │
 ◇  Command type
-│  Slash Commands (recommended)
+│  Slash Commands
 │
 ◆  Select features
-│  ◼ Moderation  ◼ Utility  ◼ Components  ◻ Fun  ◻ Economy  ◻ Music
+│  ◼ Moderation  ◼ Utility  ◼ Components  ◼ i18n  ◻ Fun  ◻ Economy  ◻ Music
 │
 ◇  Database
 │  SQLite
 │
 ◇  Package manager
-│  npm
+│  npm  (detected)
 │
 ◇  Initialize a git repository?
 │  Yes
@@ -144,7 +147,7 @@ npx discgen-cli my-bot --template full
 ◒  Scaffolding project...
 ◒  Installing dependencies with npm...
 │
-└  ✅ Done! Your bot is ready.
+└  Done! Your bot is ready.
 
    Next steps:
      cd my-bot
@@ -164,11 +167,11 @@ my-bot/
 │       └── ci.yml                     ← Node 20 / 22 CI matrix
 ├── src/
 │   ├── commands/
-│   │   ├── moderation/                ← ban, kick, timeout, warn
-│   │   ├── utility/                   ← ping, help, userinfo, serverinfo, avatar
-│   │   ├── fun/                       ← coinflip, 8ball, meme
-│   │   ├── economy/                   ← balance, daily, leaderboard (db-aware)
-│   │   ├── music/                     ← play, stop (placeholder)
+│   │   ├── moderation/                ← ban, kick, timeout, warn  (Components v2)
+│   │   ├── utility/                   ← ping, help, userinfo, serverinfo, avatar, locale*
+│   │   ├── fun/                       ← coinflip, 8ball, meme  (Components v2)
+│   │   ├── economy/                   ← balance, daily, leaderboard  (db-aware, Components v2)
+│   │   ├── music/                     ← play, stop  (placeholder)
 │   │   └── prefix/                    ← prefix commands (if commandType includes prefix)
 │   ├── events/
 │   │   ├── ready.ts
@@ -178,23 +181,29 @@ my-bot/
 │   │   ├── commandHandler.ts          ← auto-loads slash + prefix commands
 │   │   ├── interactionLoader.ts       ← auto-loads all component handlers
 │   │   └── eventHandler.ts            ← auto-loads all events
-│   ├── interactions/                  ← when "Components" feature is selected
+│   ├── interactions/                  ← "Components" feature
 │   │   ├── buttons/
 │   │   │   ├── example-button.ts
-│   │   │   └── open-modal.ts          ← opens a modal on click
+│   │   │   └── open-modal.ts
 │   │   ├── selects/
 │   │   │   └── example-select.ts
 │   │   └── modals/
 │   │       └── example-modal.ts
-│   ├── services/                      ← generated with: discgen-cli g service <name>
-│   ├── types/
-│   │   └── index.ts                   ← Command, PrefixCommand, Event, ButtonHandler, SelectHandler, ModalHandler
-│   ├── utils/
-│   │   ├── logger.ts                  ← zero-dep ANSI logger (debug/info/warn/error)
-│   │   ├── env.ts                     ← typed env validator — exits on missing vars
-│   │   └── cooldown.ts                ← per-user command cooldown with auto-cleanup
+│   ├── i18n/                          ← "i18n" feature  (*)
+│   │   ├── en.ts                      ← master locale, exports Locale interface
+│   │   ├── de.ts                      ← German translation, typed against Locale
+│   │   └── index.ts                   ← useT(), setGuildLocale(), supportedLocales
 │   ├── database/
 │   │   └── index.ts                   ← SQLite or PostgreSQL setup (if selected)
+│   ├── services/                      ← generated with: discgen-cli g service <name>
+│   ├── types/
+│   │   └── index.ts                   ← Command, PrefixCommand, Event, ButtonHandler, …
+│   ├── utils/
+│   │   ├── logger.ts                  ← zero-dep ANSI logger  (debug / info / warn / error)
+│   │   ├── env.ts                     ← typed env validator — exits on missing vars
+│   │   ├── cooldown.ts                ← per-user cooldown with auto-cleanup
+│   │   ├── embed.ts                   ← Embed.success / .error / .info / .warn / .default
+│   │   └── paginator.ts               ← paginate() — Components v2 ⏮◀ X/Y ▶⏭ navigator
 │   ├── deploy-commands.ts
 │   └── index.ts
 ├── .env.example
@@ -206,28 +215,143 @@ my-bot/
 └── README.md
 ```
 
+> `*` — only present when the corresponding feature is selected
+
 ---
 
-## 🧩 Wizard Options
+## 🧩 Features
 
-| Prompt          | Choices |
-|-----------------|---------|
-| Command type    | **Slash** (recommended) · Prefix · Both |
-| Features        | Moderation · Utility · **Components** · Fun · Economy · Music |
-| Database        | None · SQLite · PostgreSQL |
-| Package manager | npm · pnpm · bun (auto-detected) |
-| Git init        | Yes · No |
-| Install deps    | Yes · No |
+### Wizard Options
+
+| Prompt | Choices |
+|---|---|
+| Command type | **Slash** · Prefix · Both |
+| Features | Moderation · Utility · Fun · Economy · **Components** · **i18n** · Music |
+| Database | None · SQLite · PostgreSQL |
+| Package manager | npm · pnpm · bun · yarn (auto-detected from lockfile) |
+| Git init | Yes · No |
+| Install deps | Yes · No |
 
 ### `--template` Presets
 
-Skip the wizard entirely with a preset:
+Skip the wizard entirely:
 
 | Preset | Command type | Features | Database |
 |---|---|---|---|
 | `basic` | Slash | — | None |
 | `moderation` | Slash | Moderation, Utility | None |
-| `full` | Both | Moderation, Utility, Fun, Economy, **Components** | SQLite |
+| `full` | Both | Moderation, Utility, Fun, Economy, Components, **i18n** | SQLite |
+
+---
+
+## 🔘 Component Interactions
+
+When you select the **Components** feature, your bot is scaffolded with a complete interaction routing system:
+
+```
+interactionCreate.ts
+  ├── isChatInputCommand()  →  client.commands   (slash commands)
+  ├── isButton()            →  client.buttons    (button clicks)
+  ├── isAnySelectMenu()     →  client.selects    (select menus)
+  └── isModalSubmit()       →  client.modals     (modal forms)
+```
+
+Handlers are **auto-loaded** from `src/interactions/` on startup — drop a file in, it just works. A full `/demo` command is included that showcases a Components v2 layout with a button, select menu, and a "Open Form" button that triggers a modal.
+
+---
+
+## 🌐 i18n — TypeScript-native Localization
+
+When you select the **i18n** feature, your bot gets a fully typed multi-language system — **no JSON files, no external libraries**.
+
+### What gets generated
+
+| File | Purpose |
+|---|---|
+| `src/i18n/en.ts` | Master locale — exports the `Locale` interface and English strings |
+| `src/i18n/de.ts` | German translation — typed against `Locale`, TypeScript enforces completeness |
+| `src/i18n/index.ts` | `useT()`, `setGuildLocale()`, `getLocale()`, `supportedLocales` |
+| `src/commands/utility/locale.ts` | `/locale` slash command (requires `ManageGuild` permission) |
+
+### Usage
+
+```ts
+// In any command:
+const t = useT(interaction.guildId);
+
+await interaction.reply(t.ping.pinging);
+await interaction.reply(t.moderation.banned(target.tag, reason));
+await interaction.reply(t.economy.dailyCooldown('2h 15m'));
+```
+
+### Adding a new language
+
+```ts
+// src/i18n/fr.ts
+import type { Locale } from './en.js';
+
+const fr: Locale = {
+  errors: { commandFailed: 'Une erreur est survenue.', /* ... */ },
+  // TypeScript will error if any key is missing or has the wrong shape
+};
+
+export default fr;
+```
+
+Then register it in `src/i18n/index.ts`:
+
+```ts
+import fr from './fr.js';
+const locales: Record<string, Locale> = { en, de, fr };
+```
+
+### Persisting guild locales
+
+`setGuildLocale()` stores the choice in memory. To persist across restarts, save it in your database on `/locale` and restore it on startup:
+
+```ts
+// On startup — restore saved locales from DB
+for (const row of db.prepare('SELECT guild_id, locale FROM settings').all()) {
+  setGuildLocale(row.guild_id, row.locale);
+}
+```
+
+---
+
+## 🎨 Utility Helpers (always generated)
+
+### `Embed` — typed embed builder
+
+```ts
+import { Embed } from './utils/embed.js';
+
+await interaction.reply({
+  embeds: [
+    Embed.success({ title: 'Done!', description: 'Action completed.', timestamp: true }),
+    Embed.error({ description: 'Something went wrong.' }),
+    Embed.info({ title: 'Info', fields: [{ name: 'Key', value: 'Value' }] }),
+  ],
+});
+```
+
+Five presets with consistent colors: `success` · `error` · `info` · `warn` · `default`
+
+### `paginate()` — Components v2 page navigator
+
+```ts
+import { paginate } from './utils/paginator.js';
+
+await paginate({
+  interaction,
+  pages: [
+    { heading: 'Page 1', body: 'First page content...' },
+    { heading: 'Page 2', body: 'Second page content...' },
+    { heading: 'Page 3', body: 'Third page content...' },
+  ],
+});
+```
+
+Renders a fully navigable Components v2 layout with ⏮ ◀ `1 / 3` ▶ ⏭ buttons. Only the user who ran the command can navigate. Buttons auto-disable after 60 seconds of inactivity.
 
 ---
 
@@ -235,23 +359,26 @@ Skip the wizard entirely with a preset:
 
 ### Create a new project
 
-```bash
+```
 discgen-cli [name] [flags]
-
-Flags:
-  --template <preset>   Skip wizard: basic | moderation | full
-  --no-install          Skip dependency installation
-  --no-git              Skip git initialization
-  --dry-run             Preview generated files without writing
-  --version             Print version
-  --help                Show help
 ```
 
-### Add files to an existing project — `generate`
+| Flag | Description |
+|---|---|
+| `--template <preset>` | Skip wizard: `basic` \| `moderation` \| `full` |
+| `--no-install` | Skip dependency installation |
+| `--no-git` | Skip git initialization |
+| `--dry-run` | Preview generated files without writing |
+| `--version` | Print version |
+| `--help` | Show help |
 
-```bash
+> `name` is a **positional argument**, not a flag: `discgen-cli my-bot`, not `--name my-bot`
+
+### Generate files — `generate` / `g`
+
+```
 discgen-cli generate <type> [name] [flags]
-discgen-cli g <type> [name] [flags]        # short alias
+discgen-cli g <type> [name] [flags]
 ```
 
 ---
@@ -263,44 +390,36 @@ Add individual files to an **existing** bot project — like `nest generate` for
 ### Commands
 
 ```bash
-discgen-cli g command greet                  # slash command → src/commands/utility/greet.ts
+discgen-cli g command greet                      # slash → src/commands/utility/greet.ts
 discgen-cli g command ban --category moderation  # custom subfolder
-discgen-cli g command greet --prefix         # prefix command → src/commands/prefix/greet.ts
+discgen-cli g command greet --prefix             # prefix → src/commands/prefix/greet.ts
 ```
 
 ### Events
 
 ```bash
-discgen-cli g event guildMemberAdd           # → src/events/guildMemberAdd.ts
-discgen-cli g event                          # interactive: pick from 15 known Discord events
+discgen-cli g event guildMemberAdd   # → src/events/guildMemberAdd.ts
+discgen-cli g event                  # interactive: pick from 15 known Discord events
 ```
 
 ### Component Interactions
 
 ```bash
-discgen-cli g button confirm                 # → src/interactions/buttons/confirm.ts
-discgen-cli g select role-picker             # → src/interactions/selects/role-picker.ts
-discgen-cli g modal feedback                 # → src/interactions/modals/feedback.ts
+discgen-cli g button confirm         # → src/interactions/buttons/confirm.ts
+discgen-cli g select role-picker     # → src/interactions/selects/role-picker.ts
+discgen-cli g modal feedback         # → src/interactions/modals/feedback.ts
 ```
 
-### Services
+### Services & Guards
 
 ```bash
-discgen-cli g service avatar-api             # → src/services/avatar-api.ts
-discgen-cli g svc cache                      # short alias
+discgen-cli g service avatar-api     # → src/services/avatar-api.ts  (singleton class)
+discgen-cli g guard permissions      # → src/guards/permissions.ts
 ```
 
-A service is a singleton class — useful for wrapping external APIs, shared caches, or any stateful utility.
+### Type Aliases
 
-### Guards
-
-```bash
-discgen-cli g guard permissions              # → src/guards/permissions.ts
-```
-
-### Type aliases
-
-| Full name | Aliases |
+| Full | Aliases |
 |---|---|
 | `command` | `cmd`, `c` |
 | `event` | `evt`, `e` |
@@ -322,24 +441,6 @@ discgen-cli g button confirm --dry-run
 
 ---
 
-## 🔘 Component Interactions (in generated bots)
-
-When you select the **Components** feature, your bot is scaffolded with a complete interaction system:
-
-```
-interactionCreate.ts
-  ├── isChatInputCommand()  → client.commands   (slash commands)
-  ├── isButton()            → client.buttons    (button clicks)
-  ├── isAnySelectMenu()     → client.selects    (select menus)
-  └── isModalSubmit()       → client.modals     (modal forms)
-```
-
-Handlers are auto-loaded from `src/interactions/` on startup — add a file, it just works.
-
-A full `/demo` slash command is included that sends a **Components v2** layout with a button, select menu, and a "Open Form" button that triggers a modal.
-
----
-
 ## ▶️ After Scaffolding
 
 ```bash
@@ -347,27 +448,27 @@ cd my-bot
 cp .env.example .env
 ```
 
-Open `.env` and fill in your credentials from the [Discord Developer Portal](https://discord.com/developers/applications):
+Fill in your credentials from the [Discord Developer Portal](https://discord.com/developers/applications):
 
 ```env
 DISCORD_TOKEN=your_bot_token_here
 CLIENT_ID=your_application_id_here
-GUILD_ID=your_server_id_here        # for guild-scoped slash command deploys
+GUILD_ID=your_server_id_here
 ```
 
 ```bash
 npm run deploy    # register slash commands with Discord
-npm run dev       # start bot in watch mode
+npm run dev       # start bot in watch mode (tsx watch)
 ```
 
 <details>
-<summary>📋 All scripts in the generated bot</summary>
+<summary>All scripts in the generated bot</summary>
 
 | Script | Description |
 |---|---|
-| `npm run dev` | Start bot in watch mode (tsx watch) |
-| `npm run build` | Compile TypeScript → dist/ |
-| `npm start` | Run compiled bot from dist/ |
+| `npm run dev` | Start in watch mode (`tsx watch`) |
+| `npm run build` | Compile TypeScript → `dist/` |
+| `npm start` | Run compiled bot from `dist/` |
 | `npm run deploy` | Register slash commands with Discord |
 | `npm run lint` | Run ESLint |
 | `npm run format` | Format with Prettier |
@@ -376,25 +477,29 @@ npm run dev       # start bot in watch mode
 
 ---
 
-## 🛠️ Generated Bot: Tech Stack
+## 🛠️ Tech Stack
+
+### discgen-cli itself
+
+| | |
+|---|---|
+| Prompts | `@clack/prompts` |
+| CLI parsing | `commander` |
+| File I/O | native `node:fs/promises` |
+| PM detection | native lockfile sniffing (no dependencies) |
+
+### Generated bot
 
 | Layer | Technology |
 |---|---|
 | Language | TypeScript (strict mode) |
 | Discord | discord.js v14 + Components v2 |
 | Runtime | Node.js >= 22 |
-| Build | tsup (ESM + CJS) |
+| Build | tsup (ESM) |
 | Lint | ESLint 10 flat config + @typescript-eslint v8 |
 | Format | Prettier 3 |
-| Database | better-sqlite3 or pg + drizzle-orm |
+| Database | `better-sqlite3` · `pg` + `drizzle-orm` |
 | CI | GitHub Actions (Node 20 / 22 matrix) |
-
----
-
-## 📋 Requirements
-
-- **Node.js >= 22** — LTS, checked on startup, exits with a clear error if too old
-- **A Discord Bot Token** — [Discord Developer Portal →](https://discord.com/developers/applications)
 
 ---
 
@@ -407,10 +512,10 @@ git clone https://github.com/XSaitoKungX/discgen-cli
 cd discgen-cli
 npm install
 
-npm run dev        # run CLI locally with tsx
-npm run test       # run 110 unit tests
-npm run build      # compile to dist/
-npm run lint       # ESLint
+npm run dev      # run CLI locally with tsx
+npm test         # 184 unit tests
+npm run build    # compile to dist/
+npm run lint     # ESLint
 ```
 
 1. Fork the repo

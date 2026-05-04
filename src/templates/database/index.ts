@@ -3,12 +3,13 @@ import type { Database } from '../../types/index.js';
 export function generateDatabaseTs(db: Database): string {
   if (db === 'sqlite') {
     return `import Database from 'better-sqlite3';
+import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export const db = new Database(join(__dirname, '..', '..', 'data.db'));
+export const db: BetterSqlite3Database = new Database(join(__dirname, '..', '..', 'data.db'));
 
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');

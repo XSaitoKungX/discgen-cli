@@ -14,7 +14,7 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
     withResponse: true,
   });
 
-  const latency = sent.resource.message.createdTimestamp - interaction.createdTimestamp;
+  const latency = (sent.resource?.message?.createdTimestamp ?? Date.now()) - interaction.createdTimestamp;
   const wsLatency = client.ws.ping;
 
   const container = new ContainerBuilder()

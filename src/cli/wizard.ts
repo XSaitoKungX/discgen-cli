@@ -1,9 +1,8 @@
 import * as p from '@clack/prompts';
-import fs from 'fs-extra';
-import path from 'path';
+import path from 'node:path';
 import { execSync } from 'child_process';
 import { runPrompts } from './prompts.js';
-import { scaffoldProject } from '../generators/files.js';
+import { scaffoldProject, removeDir, pathExists } from '../generators/files.js';
 import { detectPackageManager, getInstallCommand, getRunCommand } from '../utils/pm.js';
 import type { WizardOptions } from '../types/index.js';
 
@@ -31,7 +30,7 @@ const PRESETS: Record<string, Partial<WizardOptions>> = {
   },
   full: {
     commandType: 'both',
-    features: ['moderation', 'utility', 'fun', 'economy', 'components'],
+    features: ['moderation', 'utility', 'fun', 'economy', 'components', 'i18n'],
     database: 'sqlite',
     gitInit: true,
     installDeps: true,
@@ -41,7 +40,7 @@ const PRESETS: Record<string, Partial<WizardOptions>> = {
 export async function runWizard(input: WizardInput = {}): Promise<void> {
   p.intro('discgen-cli — Scaffold a Discord Bot in seconds');
 
-  const detectedPm = await detectPackageManager();
+  const detectedPm = detectPackageManager();
 
   let opts: WizardOptions;
 
@@ -57,12 +56,14 @@ export async function runWizard(input: WizardInput = {}): Promise<void> {
       projectName,
       packageManager: detectedPm,
       ...preset,
+      ...(input.skipPrompts?.installDeps === false ? { installDeps: false } : {}),
+      ...(input.skipPrompts?.gitInit === false    ? { gitInit: false }    : {}),
     } as WizardOptions;
     p.log.info(`Using preset: ${input.template}`);
   } else if (input.skipPrompts && isComplete(input.skipPrompts)) {
     opts = input.skipPrompts as WizardOptions;
   } else {
-    opts = await runPrompts(input.initialName);
+    opts = await runPrompts(input.initialName, detectedPm);
     if (!opts.packageManager) {
       opts.packageManager = detectedPm;
     }
@@ -79,7 +80,7 @@ export async function runWizard(input: WizardInput = {}): Promise<void> {
     return;
   }
 
-  if (await fs.pathExists(targetDir)) {
+  if (await pathExists(targetDir)) {
     const overwrite = await p.confirm({
       message: `Directory "${opts.projectName}" already exists. Overwrite?`,
     });
@@ -89,7 +90,7 @@ export async function runWizard(input: WizardInput = {}): Promise<void> {
       return;
     }
 
-    await fs.remove(targetDir);
+    await removeDir(targetDir);
   }
 
   const scaffoldSpinner = p.spinner();
@@ -136,7 +137,7 @@ export async function runWizard(input: WizardInput = {}): Promise<void> {
 
   p.outro(
     [
-      `✅ Done! Your bot is ready.`,
+      `Done! Your bot is ready.`,
       ``,
       `  Next steps:`,
       `    cd ${opts.projectName}`,

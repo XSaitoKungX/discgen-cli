@@ -8,7 +8,8 @@ import { logger } from '../utils/logger.js';
 const event: Event = {
   name: 'ready',
   once: true,
-  execute(client: Client): void {
+  execute(...args: unknown[]): void {
+    const client = args[0] as Client;
     logger.info(\`Logged in as \${client.user?.tag ?? 'unknown'}\`, 'ready');
     logger.info(\`Serving \${client.guilds.cache.size} guild(s)\`, 'ready');
   },
@@ -40,7 +41,9 @@ import { logger } from '../utils/logger.js';
 
 const event: Event = {
   name: Events.InteractionCreate,
-  async execute(interaction: Interaction, client: Client): Promise<void> {
+  async execute(...args: unknown[]): Promise<void> {
+    const interaction = args[0] as Interaction;
+    const client = args[1] as Client;
 
     // ── Slash commands ──────────────────────────────────────────────────────
     if (interaction.isChatInputCommand()) {
@@ -125,12 +128,14 @@ const PREFIX = process.env.PREFIX ?? '!';
 
 const event: Event = {
   name: Events.MessageCreate,
-  async execute(message: Message, client: Client): Promise<void> {
+  async execute(...args: unknown[]): Promise<void> {
+    const message = args[0] as Message;
+    const client  = args[1] as Client;
+
     if (message.author.bot || !message.content.startsWith(PREFIX)) return;
 
-    const args = message.content.slice(PREFIX.length).trim().split(/\\s+/);
-    const commandName = args.shift()?.toLowerCase();
-
+    const parts = message.content.slice(PREFIX.length).trim().split(/\\s+/);
+    const commandName = parts.shift()?.toLowerCase();
     if (!commandName) return;
 
     const command = client.prefixCommands?.get(commandName);
@@ -139,7 +144,7 @@ const event: Event = {
     logger.debug(\`Executing prefix !\${commandName}\`, 'command');
 
     try {
-      await command.execute(message, args, client);
+      await command.execute(message, parts, client);
     } catch (error) {
       logger.error(\`Prefix command failed: \${commandName}\`, error, 'command');
       await message.reply('There was an error executing that command.').catch(() => null);

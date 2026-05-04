@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts';
-import path from 'path';
-import fs from 'fs-extra';
+import path from 'node:path';
+import fs from 'node:fs/promises';
 import { generateSlashCommandFile, generatePrefixCommandFile } from '../templates/generate/command.js';
 import { generateEventFile, KNOWN_EVENTS } from '../templates/generate/event.js';
 import { generateGuardFile } from '../templates/generate/guard.js';
@@ -25,6 +25,15 @@ export interface GenerateInput {
   category?: string;
   prefix?: boolean;
   dryRun?: boolean;
+}
+
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function runGenerate(input: GenerateInput = {}): Promise<void> {
@@ -146,7 +155,7 @@ async function writeFile(filePath: string, content: string, dryRun?: boolean): P
     return;
   }
 
-  if (await fs.pathExists(filePath)) {
+  if (await pathExists(filePath)) {
     const overwrite = await p.confirm({ message: `"${relPath}" already exists. Overwrite?` });
     if (p.isCancel(overwrite) || !overwrite) {
       p.cancel('Aborted. No files were modified.');
@@ -154,7 +163,7 @@ async function writeFile(filePath: string, content: string, dryRun?: boolean): P
     }
   }
 
-  await fs.ensureDir(path.dirname(filePath));
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, content, 'utf8');
   p.log.success(`Created: ${relPath}`);
 }

@@ -35,6 +35,10 @@ function buildHelpSections(opts: WizardOptions): string {
     sections.push('### Demo\n`/demo` — Components v2 interactive demo');
   }
 
+  if (opts.features.includes('i18n')) {
+    sections.push('### Settings\n`/locale` — Change the bot language for this server');
+  }
+
   return '## 📖 Commands\n\n' + sections.join('\n\n');
 }
 

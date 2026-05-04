@@ -1,8 +1,8 @@
-export type Feature = 'moderation' | 'utility' | 'fun' | 'economy' | 'music' | 'components';
+export type Feature = 'moderation' | 'utility' | 'fun' | 'economy' | 'music' | 'components' | 'i18n';
 
 export type Database = 'none' | 'sqlite' | 'postgresql';
 
-export type PackageManager = 'npm' | 'pnpm' | 'bun';
+export type PackageManager = 'npm' | 'pnpm' | 'bun' | 'yarn';
 
 export type CommandType = 'slash' | 'prefix' | 'both';
 
