@@ -4,12 +4,15 @@ import { execSync } from 'child_process';
 import { runPrompts } from './prompts.js';
 import { scaffoldProject, removeDir, pathExists } from '../generators/files.js';
 import { detectPackageManager, getInstallCommand, getRunCommand } from '../utils/pm.js';
+import { validateProjectName } from '../utils/validate.js';
 import type { WizardOptions } from '../types/index.js';
 
 interface WizardInput {
   initialName?: string;
   dryRun?: boolean;
   template?: string;
+  outputDir?: string;
+  generatorVersion?: string;
   skipPrompts?: Partial<WizardOptions>;
 }
 
@@ -51,7 +54,13 @@ export async function runWizard(input: WizardInput = {}): Promise<void> {
       p.cancel('Aborted.');
       process.exit(1);
     }
-    const projectName = input.initialName ?? 'my-discord-bot';
+    const projectName = input.initialName ?? inferProjectName(input.outputDir) ?? 'my-discord-bot';
+    const nameError = validateProjectName(projectName);
+    if (nameError) {
+      p.log.error(nameError);
+      p.cancel('Aborted.');
+      process.exit(1);
+    }
     opts = {
       projectName,
       packageManager: detectedPm,
@@ -70,8 +79,11 @@ export async function runWizard(input: WizardInput = {}): Promise<void> {
   }
 
   opts.dryRun = input.dryRun ?? false;
+  opts.generatorVersion = input.generatorVersion;
 
-  const targetDir = path.resolve(process.cwd(), opts.projectName);
+  const targetDir = input.outputDir
+    ? path.resolve(process.cwd(), input.outputDir)
+    : path.resolve(process.cwd(), opts.projectName);
 
   if (opts.dryRun) {
     p.log.info(`Dry run — files that would be generated in ./${opts.projectName}:`);
@@ -134,18 +146,38 @@ export async function runWizard(input: WizardInput = {}): Promise<void> {
 
   const devCmd = getRunCommand(opts.packageManager, 'dev');
   const deployCmd = getRunCommand(opts.packageManager, 'deploy');
+  const cdTarget = formatCdTarget(targetDir);
 
   p.outro(
     [
       `Done! Your bot is ready.`,
       ``,
       `  Next steps:`,
-      `    cd ${opts.projectName}`,
+      `    cd ${cdTarget}`,
       `    cp .env.example .env    # add DISCORD_TOKEN + CLIENT_ID`,
       `    ${deployCmd}            # register slash commands`,
       `    ${devCmd}               # start in watch mode`,
     ].join('\n'),
   );
+}
+
+function inferProjectName(outputDir?: string): string | undefined {
+  if (!outputDir) {
+    return undefined;
+  }
+
+  const name = path.basename(path.resolve(process.cwd(), outputDir));
+  return name || undefined;
+}
+
+function formatCdTarget(targetDir: string): string {
+  const relative = path.relative(process.cwd(), targetDir);
+
+  if (!relative) {
+    return '.';
+  }
+
+  return relative.startsWith('..') ? targetDir : relative;
 }
 
 function isComplete(opts: Partial<WizardOptions>): boolean {

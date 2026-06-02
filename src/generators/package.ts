@@ -13,19 +13,19 @@ interface PackageJson {
 
 export function generatePackageJson(opts: WizardOptions): PackageJson {
   const deps: Record<string, string> = {
-    'discord.js': '^14.26.3',
+    'discord.js': '^14.26.4',
     dotenv: '^17.4.2',
   };
 
   const devDeps: Record<string, string> = {
-    '@types/node': '^22.19.17',
-    '@typescript-eslint/eslint-plugin': '^8.59.1',
-    '@typescript-eslint/parser': '^8.59.1',
-    eslint: '^9.39.4',
+    '@types/node': '^24.12.4',
+    '@typescript-eslint/eslint-plugin': '^8.60.1',
+    '@typescript-eslint/parser': '^8.60.1',
+    eslint: '^10.4.1',
     prettier: '^3.8.3',
     tsup: '^8.5.1',
-    tsx: '^4.21.0',
-    typescript: '^5.9.3',
+    tsx: '^4.22.4',
+    typescript: '^6.0.3',
   };
 
   if (opts.database === 'sqlite') {
@@ -43,6 +43,7 @@ export function generatePackageJson(opts: WizardOptions): PackageJson {
   const scripts: Record<string, string> = {
     dev: 'tsx watch src/index.ts',
     build: 'tsup src/index.ts --format esm',
+    typecheck: 'tsc --noEmit',
     start: 'node dist/index.js',
     deploy: 'tsx src/deploy-commands.ts',
     lint: 'eslint src',
@@ -57,6 +58,6 @@ export function generatePackageJson(opts: WizardOptions): PackageJson {
     scripts,
     dependencies: deps,
     devDependencies: devDeps,
-    engines: { node: '>=22' },
+    engines: { node: '>=24' },
   };
 }

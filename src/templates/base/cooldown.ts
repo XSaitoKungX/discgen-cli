@@ -9,7 +9,6 @@ const cooldowns = new Map<string, Map<string, number>>();
 export function getRemainingCooldown(
   commandName: string,
   userId: string,
-  seconds: number,
 ): number {
   if (!cooldowns.has(commandName)) {
     cooldowns.set(commandName, new Map());

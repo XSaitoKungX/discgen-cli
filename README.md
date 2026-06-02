@@ -91,7 +91,7 @@ npm install -g discgen-cli
 discgen-cli my-bot
 ```
 
-> **Requires Node.js >= 22.** Checked on startup — exits with a clear error if too old.
+> **Requires Node.js >= 24.** Checked on startup — exits with a clear error if too old.
 
 ---
 
@@ -110,10 +110,16 @@ npx discgen-cli
 # Preview every file that would be written — nothing touches the disk
 npx discgen-cli my-bot --dry-run
 
+# Write into a custom folder while keeping the package name
+npx discgen-cli my-bot --output ./apps/bots/my-bot
+
 # Skip wizard entirely with a preset
 npx discgen-cli my-bot --template basic
 npx discgen-cli my-bot --template moderation
 npx discgen-cli my-bot --template full
+
+# Show available presets, features, databases, and generate types
+npx discgen-cli list
 ```
 
 ---
@@ -164,7 +170,8 @@ npx discgen-cli my-bot --template full
 my-bot/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                     ← Node 20 / 22 CI matrix
+│       └── ci.yml                     ← Node 24 LTS CI
+├── .discgen.json                      ← generator metadata for future upgrades
 ├── src/
 │   ├── commands/
 │   │   ├── moderation/                ← ban, kick, timeout, warn  (Components v2)
@@ -366,6 +373,7 @@ discgen-cli [name] [flags]
 | Flag | Description |
 |---|---|
 | `--template <preset>` | Skip wizard: `basic` \| `moderation` \| `full` |
+| `--output <dir>` | Scaffold into an explicit output directory |
 | `--no-install` | Skip dependency installation |
 | `--no-git` | Skip git initialization |
 | `--dry-run` | Preview generated files without writing |
@@ -373,6 +381,12 @@ discgen-cli [name] [flags]
 | `--help` | Show help |
 
 > `name` is a **positional argument**, not a flag: `discgen-cli my-bot`, not `--name my-bot`
+
+### List available options
+
+```
+discgen-cli list
+```
 
 ### Generate files — `generate` / `g`
 
@@ -494,12 +508,12 @@ npm run dev       # start bot in watch mode (tsx watch)
 |---|---|
 | Language | TypeScript (strict mode) |
 | Discord | discord.js v14 + Components v2 |
-| Runtime | Node.js >= 22 |
+| Runtime | Node.js >= 24 |
 | Build | tsup (ESM) |
 | Lint | ESLint 10 flat config + @typescript-eslint v8 |
 | Format | Prettier 3 |
 | Database | `better-sqlite3` · `pg` + `drizzle-orm` |
-| CI | GitHub Actions (Node 20 / 22 matrix) |
+| CI | GitHub Actions (Node 24 LTS) |
 
 ---
 

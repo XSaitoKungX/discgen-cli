@@ -1,16 +1,25 @@
 import * as p from '@clack/prompts';
 import type { WizardOptions, CommandType, Feature, Database, PackageManager } from '../types/index.js';
+import { validateProjectName } from '../utils/validate.js';
 
 export async function runPrompts(initialName?: string, detectedPm?: PackageManager): Promise<WizardOptions> {
-  const projectName = initialName ?? (await p.text({
-    message: 'Project name:',
-    placeholder: 'my-discord-bot',
-    validate(value) {
-      if (!value?.trim()) return 'Name cannot be empty.';
-      if (!/^[a-z0-9-_]+$/i.test(value)) return 'Use letters, numbers, hyphens, or underscores.';
-      return undefined;
-    },
-  }));
+  let projectName: string | symbol;
+
+  if (initialName) {
+    const error = validateProjectName(initialName);
+    if (error) {
+      p.log.error(error);
+      p.cancel('Aborted.');
+      process.exit(1);
+    }
+    projectName = initialName;
+  } else {
+    projectName = await p.text({
+      message: 'Project name:',
+      placeholder: 'my-discord-bot',
+      validate: (value) => validateProjectName(value ?? ''),
+    });
+  }
 
   if (p.isCancel(projectName)) {
     p.cancel('Operation cancelled.');

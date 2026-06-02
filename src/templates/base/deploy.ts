@@ -64,6 +64,7 @@ npm run dev            # start in watch mode
 |--------|-------------|
 | \`npm run dev\` | Start bot in watch mode |
 | \`npm run build\` | Compile TypeScript |
+| \`npm run typecheck\` | Check TypeScript without emitting files |
 | \`npm start\` | Run compiled bot |
 | \`npm run deploy\` | Register slash commands |
 | \`npm run lint\` | Run ESLint |
@@ -71,7 +72,7 @@ npm run dev            # start in watch mode
 
 ## Requirements
 
-- Node.js >= 22
+- Node.js >= 24
 - A Discord Bot Token — [Discord Developer Portal](https://discord.com/developers/applications)
 
 ## License

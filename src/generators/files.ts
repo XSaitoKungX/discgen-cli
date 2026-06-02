@@ -66,6 +66,7 @@ function buildFileList(opts: WizardOptions, projectDir: string): FileEntry[] {
 
   // ── Root config ────────────────────────────────────────────────────────────
   add('package.json',      JSON.stringify(generatePackageJson(opts), null, 2) + '\n');
+  add('.discgen.json',     JSON.stringify(generateDiscgenConfig(opts), null, 2) + '\n');
   add('tsconfig.json',     generateTsconfig());
   add('eslint.config.mjs', generateEslintConfig());
   add('.prettierrc',       generatePrettierrc());
@@ -157,6 +158,19 @@ function buildFileList(opts: WizardOptions, projectDir: string): FileEntry[] {
   add('.github/workflows/ci.yml', generateCiWorkflow());
 
   return files;
+}
+
+function generateDiscgenConfig(opts: WizardOptions): Record<string, unknown> {
+  return {
+    schemaVersion: 1,
+    generator: 'discgen-cli',
+    generatorVersion: opts.generatorVersion ?? 'unknown',
+    projectName: opts.projectName,
+    commandType: opts.commandType,
+    features: opts.features,
+    database: opts.database,
+    packageManager: opts.packageManager,
+  };
 }
 
 export async function scaffoldProject(opts: WizardOptions, targetDir: string): Promise<void> {

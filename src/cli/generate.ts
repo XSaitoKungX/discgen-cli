@@ -6,6 +6,7 @@ import { generateEventFile, KNOWN_EVENTS } from '../templates/generate/event.js'
 import { generateGuardFile } from '../templates/generate/guard.js';
 import { generateButtonFile, generateSelectFile, generateModalFile } from '../templates/generate/interaction.js';
 import { generateServiceFile } from '../templates/generate/service.js';
+import { validateFileName } from '../utils/validate.js';
 
 type GenerateType = 'command' | 'event' | 'guard' | 'button' | 'select' | 'modal' | 'service';
 
@@ -92,10 +93,16 @@ export async function runGenerate(input: GenerateInput = {}): Promise<void> {
   let name: string;
   if (input.name) {
     name = input.name.toLowerCase().replace(/\s+/g, '-');
+    const error = validateFileName(name);
+    if (error) {
+      p.log.error(error);
+      p.cancel('Aborted.');
+      process.exit(1);
+    }
   } else {
     const answer = await p.text({
       message: `Name for the ${genType}:`,
-      validate: (v) => (v?.trim() ? undefined : 'Name is required.'),
+      validate: (v) => validateFileName((v ?? '').trim().toLowerCase().replace(/\s+/g, '-')),
     });
     if (p.isCancel(answer)) { p.cancel('Aborted.'); process.exit(0); }
     name = (answer as string).trim().toLowerCase().replace(/\s+/g, '-');

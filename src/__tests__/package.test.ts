@@ -45,12 +45,13 @@ describe('generatePackageJson', () => {
     const pkg = generatePackageJson(baseOpts);
     expect(pkg.scripts['dev']).toBeDefined();
     expect(pkg.scripts['build']).toBeDefined();
+    expect(pkg.scripts['typecheck']).toBeDefined();
     expect(pkg.scripts['start']).toBeDefined();
     expect(pkg.scripts['deploy']).toBeDefined();
   });
 
-  it('sets engines.node to >=22', () => {
+  it('sets engines.node to >=24', () => {
     const pkg = generatePackageJson(baseOpts);
-    expect(pkg.engines['node']).toBe('>=22');
+    expect(pkg.engines['node']).toBe('>=24');
   });
 });

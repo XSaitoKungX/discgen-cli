@@ -5,6 +5,7 @@ import { Command } from 'commander';
 import { checkNodeVersion } from './utils/validate.js';
 import { runWizard } from './cli/wizard.js';
 import { runGenerate } from './cli/generate.js';
+import { runList } from './cli/list.js';
 
 checkNodeVersion();
 
@@ -22,17 +23,20 @@ program
   .option('--no-install', 'Skip dependency installation')
   .option('--no-git', 'Skip git initialization')
   .option('--dry-run', 'Preview generated files without writing to disk')
+  .option('--output <dir>', 'Scaffold into an explicit output directory')
   .option('--template <preset>', 'Skip wizard with a preset: basic | moderation | full')
   .action(
     async (
       name: string | undefined,
-      options: { install: boolean; git: boolean; dryRun: boolean; template?: string },
+      options: { install: boolean; git: boolean; dryRun: boolean; output?: string; template?: string },
     ) => {
       try {
         await runWizard({
           initialName: name,
           dryRun: options.dryRun ?? false,
+          outputDir: options.output,
           template: options.template,
+          generatorVersion: version,
           skipPrompts:
             options.install === false || options.git === false
               ? { installDeps: options.install, gitInit: options.git }
@@ -50,9 +54,16 @@ program
   );
 
 program
+  .command('list')
+  .description('List available presets, features, databases, and generate types')
+  .action(() => {
+    runList();
+  });
+
+program
   .command('generate [type] [name]')
   .alias('g')
-  .description('Generate a file in an existing project (command | event | guard)')
+  .description('Generate a file in an existing project')
   .option('--category <category>', 'Command subfolder, e.g. utility (slash only)')
   .option('--prefix', 'Generate as a prefix command instead of slash')
   .option('--dry-run', 'Preview without writing')

@@ -15,4 +15,5 @@ export interface WizardOptions {
   gitInit: boolean;
   installDeps: boolean;
   dryRun?: boolean;
+  generatorVersion?: string;
 }

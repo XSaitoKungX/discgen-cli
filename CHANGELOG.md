@@ -6,6 +6,42 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [2.0.0] — 2026-06-02
+
+### Breaking
+
+- **Node.js baseline bumped to `>=24`** for `discgen-cli` and all generated projects.
+- Generated CI now targets **Node 24 LTS** instead of older Node matrices.
+
+### Added
+
+- **`discgen-cli list`** — prints available presets, command types, features, databases, and generate types.
+- **`--output <dir>`** — scaffold into an explicit output directory while keeping the package name separate.
+- **`.discgen.json`** — generated projects now include generator metadata for future `doctor` and `upgrade` workflows.
+- **`typecheck` script** — added to generated projects and release validation.
+
+### Changed
+
+- Updated CLI dependencies, including `commander@15`.
+- Updated generated bot dependency baselines, including `discord.js@^14.26.4`, `typescript@^6.0.3`, ESLint 10, and Node 24 type definitions.
+- Project name validation now follows npm package-name expectations more closely.
+- Generated file names are validated as safe lowercase kebab-case module names.
+- Next-step output now respects `--output <dir>`.
+- TODO roadmap was restructured into release, UX, template quality, feature, upgrade, and publishing tracks.
+
+### Fixed
+
+- Generated `cooldown.ts` no longer includes an unused `seconds` parameter in `getRemainingCooldown`.
+- Generated project CI no longer tests unsupported Node versions.
+- CLI help text for `generate` no longer lists only a subset of supported generate types.
+
+### Tests
+
+- 189 tests passing.
+- Full preset smoke-tested with dependency install, typecheck, lint, and build.
+
+---
+
 ## [1.5.0] — 2026-05-04
 
 ### Added
