@@ -30,7 +30,6 @@ Authoritative backlog and known-issues list for `discgen-cli`.
 - [ ] Persist i18n guild choices through the selected storage adapter.
 - [ ] Review the low-severity dependency advisory reported by npm; do not run automatic audit fixes
       without reviewing the affected dependency and exploitability.
-- [ ] Make the release workflow depend on all CI checks and fail closed.
 
 ## P3 — product roadmap
 

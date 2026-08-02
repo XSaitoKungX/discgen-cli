@@ -18,6 +18,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 - Consolidated repository guidance, refreshed documentation and dependency metadata, and added a
   publish gate that includes lint, typecheck, tests, and build.
+- Made the tag-driven release workflow fail closed and run lint and typecheck before publishing.
 
 ## [2.0.0] — 2026-06-02
 
