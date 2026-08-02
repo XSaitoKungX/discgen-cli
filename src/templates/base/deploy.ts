@@ -1,3 +1,6 @@
+import type { WizardOptions } from '../../types/index.js';
+import { getRunCommand } from '../../utils/pm.js';
+
 export function generateDeployCommandsTs(): string {
   return `import { REST, Routes } from 'discord.js';
 import { readdirSync, statSync } from 'fs';
@@ -45,8 +48,14 @@ if (guildId) {
 `;
 }
 
-export function generateReadme(projectName: string): string {
-  return `# ${projectName}
+export function generateReadme(opts: WizardOptions): string {
+  const deployCommand = getRunCommand(opts.packageManager, 'deploy');
+  const devCommand = getRunCommand(opts.packageManager, 'dev');
+  const buildCommand = getRunCommand(opts.packageManager, 'build');
+  const lintCommand = getRunCommand(opts.packageManager, 'lint');
+  const formatCommand = getRunCommand(opts.packageManager, 'format');
+
+  return `# ${opts.projectName}
 
 A Discord Bot built with [discord.js](https://discord.js.org/) v14 and TypeScript.
 
@@ -54,24 +63,24 @@ A Discord Bot built with [discord.js](https://discord.js.org/) v14 and TypeScrip
 
 \`\`\`bash
 cp .env.example .env   # fill in DISCORD_TOKEN and CLIENT_ID
-npm run deploy         # register slash commands
-npm run dev            # start in watch mode
+${deployCommand}         # register slash commands
+${devCommand}            # start in watch mode
 \`\`\`
 
 ## Scripts
 
 | Script | Description |
 |--------|-------------|
-| \`npm run dev\` | Start bot in watch mode |
-| \`npm run build\` | Compile TypeScript |
-| \`npm start\` | Run compiled bot |
-| \`npm run deploy\` | Register slash commands |
-| \`npm run lint\` | Run ESLint |
-| \`npm run format\` | Format with Prettier |
+| \`${devCommand}\` | Start bot in watch mode |
+| \`${buildCommand}\` | Compile TypeScript |
+| \`${getRunCommand(opts.packageManager, 'start')}\` | Run compiled bot |
+| \`${deployCommand}\` | Register slash commands |
+| \`${lintCommand}\` | Run ESLint |
+| \`${formatCommand}\` | Format with Prettier |
 
 ## Requirements
 
-- Node.js >= 22
+- Node.js >= 22.13.0
 - A Discord Bot Token — [Discord Developer Portal](https://discord.com/developers/applications)
 
 ## License

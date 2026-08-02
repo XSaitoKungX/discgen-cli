@@ -1,107 +1,148 @@
 # TODO
 
-Tracked tasks and planned features for `discgen-cli`.
-Priorities: `P1` critical · `P2` important · `P3` nice to have
+Authoritative backlog and known-issues list for `discgen-cli`.
 
----
+Priorities:
 
-## CLI Core
+- `P1` — release blocker, data-loss/security risk, or advertised core behavior is broken
+- `P2` — important correctness, testing, or maintainability work
+- `P3` — useful enhancement after core guarantees are covered
 
-- [x] `P1` Interactive wizard with `@clack/prompts`
-- [x] `P1` Argument parsing via `commander` (`--name`, `--no-install`, `--no-git`, `--template`)
-- [x] `P1` File scaffolding with native `node:fs/promises` (replaced `fs-extra`)
-- [x] `P1` Template system for all generated files
-- [x] `P1` Package manager detection via lockfile sniffing — native, zero-dep (replaced `detect-package-manager`)
-- [x] `P1` Yarn support (added alongside npm/pnpm/bun)
-- [x] `P1` Auto-install dependencies after scaffolding
-- [x] `P1` Git init support
-- [x] `P2` Overwrite confirmation if target directory exists
-- [x] `P2` Node.js version check (>= 22), exit with clear error if too old
-- [x] `P2` "Next steps" output after scaffolding
-- [x] `P3` `--dry-run` flag to preview generated files without writing
-- [x] `P2` `--template <preset>` flag: `basic` | `moderation` | `full`
-- [x] `P1` `generate` subcommand (`discgen-cli g command|event|guard|button|select|modal|service <name>`)
-- [x] `P1` Component interactions system (buttons, select menus, modals) with full routing in `interactionCreate`
-- [ ] `P2` `--output <dir>` flag to scaffold into an explicit directory instead of `<cwd>/<name>`
-- [ ] `P2` `discgen-cli list` subcommand — prints all available templates, presets, and generate types
-- [ ] `P2` `discgen-cli upgrade` subcommand — diff & patch an existing project to the latest template version
-- [ ] `P3` `--json` flag — output scaffolding result as machine-readable JSON (path, files written, pm used)
-- [ ] `P3` Shell completions (`discgen-cli completion bash|zsh|fish`) via `commander`
+## P1 — correctness and safety
 
----
+- [ ] **Complete Prefix feature parity.** Prefix and Both projects now receive working `help` and
+      `ping` commands, but Moderation, Utility, Fun, Economy, Music, Components, and i18n command packs
+      are slash-only. Either generate real prefix variants or hide incompatible feature choices for a
+      prefix-only wizard.
+- [ ] **Compile generated projects in CI.** Snapshot and substring tests prove text stability, not
+      that every generated variant typechecks. Add a hermetic matrix covering Slash/Prefix/Both,
+      presets, every database, and feature combinations; run generated `tsc --noEmit` without network
+      access.
+- [ ] **Make overwrite recoverable.** The wizard currently deletes an accepted existing target
+      before the new scaffold is complete. Generate into a sibling temporary directory, then swap it
+      into place; restore or retain the original if generation fails.
+- [ ] **Remove lower-layer process termination.** `src/cli/prompts.ts`, `wizard.ts`, and
+      `generate.ts` still call `process.exit`. Model cancellation and invalid input as typed outcomes
+      handled once by `src/index.ts`, with cancellation exiting successfully and without a stack trace.
 
-## Templates
+## P2 — quality and maintainability
 
-- [x] `P1` Base template (TypeScript, discord.js v14, command/event handler)
-- [x] `P1` Slash Commands template
-- [x] `P1` Prefix Commands template — full routing via `messageCreate` + `client.prefixCommands`
-- [x] `P2` Moderation commands (`ban`, `kick`, `timeout`, `warn`)
-- [x] `P2` Utility commands (`ping`, `userinfo`, `serverinfo`, `avatar`) — Components v2
-- [x] `P2` Fun commands (`coinflip`, `8ball`, `meme`) — Components v2
-- [x] `P2` Economy commands (balance, daily, leaderboard) — database-aware (SQLite/PostgreSQL/in-memory)
-- [x] `P3` Music commands (placeholder with note: requires voice deps)
-- [x] `P2` SQLite template (`better-sqlite3`) — `users` table with `balance` + `last_daily`
-- [x] `P2` PostgreSQL template (`pg` + `drizzle-orm`) — `users` table with `balance` + `lastDaily`
-- [x] `P2` Auto-generated `README.md` per project
-- [x] `P3` Auto-generated `deploy-commands.ts` script — skips `prefix/` folder
-- [x] `P2` Logger utility (`src/utils/logger.ts`) — zero-dependency, log levels, colors, context, stderr/stdout
-- [x] `P2` Env validator utility (`src/utils/env.ts`) — typed env check on startup, exits with clear error
-- [x] `P2` Cooldown utility (`src/utils/cooldown.ts`) — per-user command cooldown with auto-cleanup
-- [x] `P2` Help command (`src/commands/utility/help.ts`) — dynamic list, Components v2 for slash / plain text for prefix
-- [x] `P2` `generate service` subcommand — singleton service class in `src/services/`
-- [ ] `P1` **MongoDB template** — `mongoose` ODM, `users` collection, typed schema — parity with SQLite/PG
-- [ ] `P2` **Redis feature** — optional caching layer (`ioredis`), session/rate-limit store, generated `src/cache/index.ts`
-- [x] `P2` **i18n feature** — `src/i18n/en.ts` + `de.ts` (typed `.ts` locales, `as const`), `useT(guildId)` helper, `setGuildLocale()`, `/locale` command (ManageGuild), wizard-selectable
-- [ ] `P2` **Ticket system feature** — `/ticket open|close|add|remove`, channel creation, transcript export to text file
-- [ ] `P2` **Leveling/XP feature** — XP per message, level-up event, rank card command (`/rank`), leaderboard — DB-aware
-- [ ] `P2` **Giveaway feature** — `/giveaway start|end|reroll`, timer, winner selection, embed UI
-- [ ] `P2` **Logging/Audit feature** — guild event logging (`memberAdd`, `messageDelete`, etc.) to a configurable channel
-- [ ] `P3` **Reaction roles feature** — embed + reaction → role assignment, stored in DB, admin `/reactionrole` setup command
-- [ ] `P3` **Welcome/Farewell feature** — `guildMemberAdd/Remove` handler, configurable embed, optional DM
-- [ ] `P3` **Reminder feature** — `/remind <time> <message>`, persistent timers stored in DB, DM on trigger
-- [ ] `P3` **Poll feature** — `/poll create`, reaction or button voting, auto-close after duration, result embed
-- [ ] `P3` **Auto-role feature** — assign role(s) on member join, configurable via `.env`
-- [ ] `P3` **Suggestion feature** — `/suggest`, thread per suggestion, upvote/downvote via buttons, mod `/suggest approve|deny`
-- [ ] `P3` **Tags/Custom commands feature** — guild-specific text responses stored in DB, `/tag create|edit|delete|list`
-- [ ] `P3` Music — real implementation with `@discordjs/voice` + `play-dl` / `ytdl-core` alternative
+### Generator integrity
 
----
+- [ ] Derive feature names, labels, package dependencies, file manifests, help text, and
+      compatibility from one typed feature registry. The current parallel conditionals can drift.
+- [ ] Split `src/templates/commands/economy.ts` into per-database strategy fragments; the current
+      file duplicates command rendering across four storage modes and is the largest maintenance
+      hotspot.
+- [ ] Validate dynamically imported commands, events, and interaction handlers with explicit type
+      guards and report duplicate names/custom IDs instead of silently skipping or replacing entries.
+- [ ] Guard interaction-loader directory reads with `statSync().isDirectory()` as the command
+      loader already does.
+- [ ] Catch rejected async event handlers at the registration boundary and log the event name.
+      `void event.execute(...)` currently delegates failures to the global rejection handler.
+- [ ] Extend environment validation from Discord credentials to selected database settings and
+      `LOG_CHANNEL_ID`, while distinguishing required and optional variables.
+- [ ] Replace PostgreSQL startup DDL with a documented migration workflow before the schema grows;
+      the current initializer is intentionally minimal.
+- [ ] Configure Discord partials and document privileged-intent requirements so audit logging has
+      predictable coverage for uncached messages and members.
+- [ ] Persist i18n guild choices through the selected storage adapter and translate all generated
+      user-facing command responses, not only the current subset.
 
-## Developer Experience
+### CLI behavior
 
-- [x] `P1` `tsconfig.json` with strict mode
-- [x] `P1` `eslint.config.mjs` with `@typescript-eslint` (ESLint 10 flat config)
-- [x] `P1` `.prettierrc` config
-- [x] `P1` `.gitignore` (node_modules, dist, .env)
-- [x] `P2` `.env.example` with all required variables (includes `PREFIX=!` for prefix bots)
-- [x] `P2` `vitest` setup for CLI unit tests — 184 tests passing, `vitest.config.ts` with `pool: forks`
-- [x] `P3` GitHub Actions CI workflow in generated project
-- [x] `P2` GitHub Actions CI for discgen-cli repo (Node 20/22 matrix)
-- [x] `P2` GitHub Actions Release workflow (auto-publish on `v*` tag)
-- [ ] `P2` **`discgen-cli doctor`** — diagnose a scaffolded project: missing `.env` keys, outdated deps, wrong Node version, broken `tsconfig.json` paths
-- [ ] `P2` **Snapshot tests** — `toMatchSnapshot()` for every template generator so regressions in generated code are caught immediately
-- [ ] `P2` **Prettier in generated project** — add `format` script + `lint-staged` + `husky` pre-commit hook so code stays formatted out of the box
-- [x] `P2` **`src/utils/paginator.ts`** — reusable embed paginator (⏮◀ X/Y ▶⏭ buttons), idle timeout, per-user collector, auto-disable on end
-- [x] `P2` **`src/utils/embed.ts`** — typed `Embed.success/error/info/warn/default()` builder with consistent colour palette, optional fields/footer/thumbnail/timestamp
-- [ ] `P3` **VSCode workspace settings** — `.vscode/settings.json` + `extensions.json` (ESLint, Prettier, discord.js snippets)
-- [ ] `P3` **Dockerfile + docker-compose** — production-ready container template, optional during wizard
-- [ ] `P3` **`CONTRIBUTING.md` + `CODE_OF_CONDUCT.md`** — generated in project for open-source bots
-- [ ] `P3` **`generate middleware`** — generate a typed middleware/guard that wraps command execution (rate-limit, role check, etc.)
-- [ ] `P3` **`generate cron`** — generate a cron-job style interval task in `src/tasks/` that auto-registers on startup
-- [ ] `P3` **E2E smoke test** — run `discgen-cli --template basic --name e2e-bot --no-install --no-git` in CI and verify `tsc --noEmit` passes on the output
+- [ ] Add `--output <dir>` with containment rules and a clear interaction with the positional
+      project name.
+- [ ] Add a non-interactive mode that never opens prompts and fails with structured diagnostics
+      when required options are missing.
+- [ ] Add `--json` output for automation (`target`, written files, selected package manager,
+      warnings).
+- [ ] Add `discgen-cli list` for presets, features, databases, and `generate` types.
+- [ ] Add `discgen-cli doctor` to check generated Node versions, environment keys, dependency
+      drift, loader output, and TypeScript configuration.
+- [ ] Add `discgen-cli upgrade` only after template-version metadata and a safe three-way migration
+      design exist.
 
----
+### Testing and verification
 
-## Publishing
+- [ ] Add behavioral tests for Wizard cancellation, preset overrides, overwrite refusal, dry-run,
+      failed Git initialization, and failed dependency installation.
+- [ ] Test that every path produced by the file manifest stays beneath the project root.
+- [ ] Add tests for duplicate command/event/interaction IDs and malformed dynamically imported
+      modules.
+- [ ] Add coverage reporting with a documented threshold; prioritize branch coverage in
+      orchestration and validation.
+- [ ] Add generated-project runtime smoke tests for loader discovery after `npm run build`.
+- [ ] Review and triage the one low-severity advisory reported by `npm install`. Do not run
+      `npm audit fix` blindly; record the affected package, exploitability, and chosen resolution.
 
-- [x] `P2` Publish to npm as `discgen-cli`
-- [ ] `P2` GitHub Releases with changelog (automated via release.yml from v1.1.1)
-- [x] `P2` npm README with usage demo
-- [ ] `P3` Website page on xsaitox.dev
-- [ ] `P3` Interactive demo / StackBlitz embed on the website
+### Release and repository hygiene
 
----
+- [ ] Add the generated-project compile/load smoke matrix to CI before publishing.
+- [ ] Make the release job depend on the full CI gate and fail closed; the GitHub Release job
+      currently runs with `if: always()`.
+- [ ] Generate release notes robustly when the tag has no matching changelog section.
+- [ ] Add `CONTRIBUTING.md` and a lightweight issue/PR template for this repository.
+- [ ] Decide whether `dist/` remains committed. If yes, verify it in CI; if no, remove it from Git
+      and build only for package publication.
 
-## Bugs / Known Issues
+## P3 — product roadmap
 
-_None._
+- [ ] Redis-backed cache/rate-limit feature.
+- [ ] Ticket system with permission checks and transcript export.
+- [ ] Persistent leveling/XP with a rank command and leaderboard.
+- [ ] Giveaways with durable timers, reroll, and restart recovery.
+- [ ] Reaction roles and button roles backed by the selected database.
+- [ ] Welcome/farewell messages with configurable destinations.
+- [ ] Persistent reminders with restart recovery.
+- [ ] Polls with durable voting and close times.
+- [ ] Auto-role assignment with documented permission requirements.
+- [ ] Suggestions with threads, voting, and moderation state.
+- [ ] Guild-specific tags/custom commands.
+- [ ] Real music support after selecting a maintained audio/source stack.
+- [ ] Shell completion for Bash, Zsh, Fish, and PowerShell.
+- [ ] `generate middleware` and `generate task` after loader contracts exist for both.
+- [ ] Optional editor recommendations for generated projects.
+- [ ] Documentation site or terminal recording after the CLI contract stabilizes.
+
+## Completed in the current 1.6 work
+
+- [x] Consolidated agent guidance into `AGENTS.md`; removed stale `CLAUDE.md` and `PROMPT.md`.
+- [x] Centralized validation for project names, generated names, event names, and categories;
+      blocked traversal, separators, and Windows reserved device names.
+- [x] Switched Commander startup to `parseAsync()` and added a clear Node version error boundary.
+- [x] Raised the supported runtime to Node.js `>=22.13.0` and aligned CI with Node 22/24.
+- [x] Updated root and generated dependencies to the newest mutually compatible releases.
+- [x] Kept TypeScript 6 because `@typescript-eslint@8.65` excludes TypeScript 7; aligned Node types
+      with the minimum supported Node 22 runtime.
+- [x] Changed generated production builds from a single `tsup` entry bundle to full-tree `tsc`
+      compilation so dynamic loaders can discover commands, events, and interactions in `dist/`.
+- [x] Initialized SQLite, PostgreSQL, and MongoDB before handler loading and validated database
+      connection variables at the database boundary.
+- [x] Added real Prefix `help` and `ping` commands and stopped emitting slash feature commands for
+      prefix-only projects.
+- [x] Made Economy claims coherent and atomic: no-database projects use one shared in-memory store;
+      SQLite uses a transaction, PostgreSQL serializes each user through an advisory transaction
+      lock, and MongoDB uses a conditional update with duplicate-key recovery.
+- [x] Removed the unused generated `drizzle-kit` and `tsup` dependencies.
+- [x] Added an explicit root `typecheck` script and included it in the publish gate.
+- [x] Reworked README and design documentation to describe actual behavior and limitations.
+
+## Maturity assessment notes
+
+The codebase is a local scaffolding CLI rather than an on-chain protocol, so arithmetic,
+decentralization, and transaction-ordering categories from the maturity framework are not directly
+applicable. Relevant findings are:
+
+- **Input/auth boundary:** improved by central path-segment validation; shell execution remains
+  constrained to package-manager and Git choices.
+- **Complexity:** generally small modules, with Economy template duplication and parallel feature
+  registries as the main hotspots.
+- **Documentation:** consolidated and materially improved; release/version documents still need an
+  automated consistency gate.
+- **Low-level operations:** no native/unsafe code in the CLI; generated SQLite introduces a native
+  dependency and needs cross-platform smoke coverage.
+- **Testing:** broad template snapshots exist, but orchestration, compiled generated output, loader
+  behavior, and concurrency are not sufficiently verified.
+- **Auditing/operations:** logging exists for generated bots, but repository incident response,
+  coverage thresholds, and a reviewed dependency-advisory process remain incomplete.

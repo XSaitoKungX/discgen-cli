@@ -1,15 +1,22 @@
-export function generatePingCommand(): string {
+export function generatePingCommand(hasI18n = false): string {
+  const i18nImport = hasI18n ? `\nimport { useT } from '../../i18n/index.js';` : '';
+  const i18nInit = hasI18n ? `\n  const t = useT(interaction.guildId);` : '';
+  const pinging = hasI18n ? `t.ping.pinging` : `'Pinging...'`;
+  const result = hasI18n
+    ? `t.ping.result(latency, wsLatency)`
+    : `\`🏓 Pong!\\n**Latency:** \${latency}ms | **WebSocket:** \${wsLatency}ms\``;
+
   return `import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
 import type { ChatInputCommandInteraction, Client } from 'discord.js';
-import type { Command } from '../../types/index.js';
+import type { Command } from '../../types/index.js';${i18nImport}
 
 export const data = new SlashCommandBuilder()
   .setName('ping')
   .setDescription('Replies with Pong and shows latency.');
 
-export async function execute(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
+export async function execute(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {${i18nInit}
   const sent = await interaction.reply({
-    components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('Pinging...'))],
+    components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(${pinging}))],
     flags: MessageFlags.IsComponentsV2,
     withResponse: true,
   });
@@ -19,15 +26,29 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
 
   const container = new ContainerBuilder()
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        \`🏓 Pong!\\n**Latency:** \${latency}ms | **WebSocket:** \${wsLatency}ms\`,
-      ),
+      new TextDisplayBuilder().setContent(${result}),
     );
 
   await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
 }
 
 export default { data, execute } satisfies Command;
+`;
+}
+
+export function generatePrefixPingCommand(): string {
+  return `import type { Message, Client } from 'discord.js';
+import type { PrefixCommand } from '../../types/index.js';
+
+const ping: PrefixCommand = {
+  name: 'ping',
+  description: 'Check bot latency.',
+  async execute(message: Message, _args: string[], client: Client): Promise<void> {
+    await message.reply(\`🏓 Pong! WebSocket: \${client.ws.ping}ms\`);
+  },
+};
+
+export default ping;
 `;
 }
 

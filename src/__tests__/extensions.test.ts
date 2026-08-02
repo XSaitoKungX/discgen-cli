@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { generateBalanceCommand, generateDailyCommand, generateLeaderboardCommand } from '../templates/commands/economy.js';
-import { generateAvatarCommand } from '../templates/commands/utility.js';
+import {
+  generateBalanceCommand,
+  generateDailyCommand,
+  generateLeaderboardCommand,
+} from '../templates/commands/economy.js';
+import { generateAvatarCommand, generatePrefixPingCommand } from '../templates/commands/utility.js';
 import { generateHelpCommand } from '../templates/commands/help.js';
 import { generateMessageCreateEvent } from '../templates/events/index.js';
 import { generateCommandHandler } from '../templates/base/handlers.js';
@@ -21,14 +25,14 @@ const baseOpts: WizardOptions = {
 // ── Economy: database-aware ─────────────────────────────────────────────────
 
 describe('economy commands — no database', () => {
-  it('balance uses in-memory Map', () => {
-    expect(generateBalanceCommand('none')).toContain('new Map');
+  it('balance imports the shared in-memory store', () => {
+    expect(generateBalanceCommand('none')).toContain("from '../../economy/store.js'");
   });
-  it('daily uses in-memory Map', () => {
-    expect(generateDailyCommand('none')).toContain('new Map');
+  it('daily delegates claims to the shared in-memory store', () => {
+    expect(generateDailyCommand('none')).toContain('claimDailyReward(interaction.user.id)');
   });
-  it('leaderboard uses in-memory Map', () => {
-    expect(generateLeaderboardCommand('none')).toContain('new Map');
+  it('leaderboard reads from the shared in-memory store', () => {
+    expect(generateLeaderboardCommand('none')).toContain('getLeaderboard()');
   });
 });
 
@@ -54,8 +58,10 @@ describe('economy commands — postgresql', () => {
   it('balance uses db.select', () => {
     expect(generateBalanceCommand('postgresql')).toContain('db.select()');
   });
-  it('daily uses onConflictDoUpdate', () => {
-    expect(generateDailyCommand('postgresql')).toContain('onConflictDoUpdate');
+  it('daily serializes claims in a database transaction', () => {
+    const daily = generateDailyCommand('postgresql');
+    expect(daily).toContain('pg_advisory_xact_lock');
+    expect(daily).toContain('SELECT balance, last_daily FROM users WHERE id = $1 FOR UPDATE');
   });
   it('leaderboard uses desc ordering', () => {
     expect(generateLeaderboardCommand('postgresql')).toContain('desc(users.balance)');
@@ -116,7 +122,11 @@ describe('generateHelpCommand — dynamic sections', () => {
     expect(out).toContain('/daily');
   });
   it('prefix help lists prefix commands', () => {
-    const out = generateHelpCommand({ ...baseOpts, commandType: 'prefix', features: ['moderation'] });
+    const out = generateHelpCommand({
+      ...baseOpts,
+      commandType: 'prefix',
+      features: ['moderation'],
+    });
     expect(out).toContain('!help');
     expect(out).toContain('!ban');
   });
@@ -139,6 +149,18 @@ describe('generateMessageCreateEvent', () => {
   });
   it('ignores bot messages', () => {
     expect(generateMessageCreateEvent()).toContain('message.author.bot');
+  });
+});
+
+describe('generatePrefixPingCommand', () => {
+  it('exports a loadable prefix command', () => {
+    const out = generatePrefixPingCommand();
+    expect(out).toContain("name: 'ping'");
+    expect(out).toContain('PrefixCommand');
+  });
+
+  it('reports the Discord websocket latency', () => {
+    expect(generatePrefixPingCommand()).toContain('client.ws.ping');
   });
 });
 

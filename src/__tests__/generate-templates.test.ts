@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { generateSlashCommandFile, generatePrefixCommandFile, kebabToCamel } from '../templates/generate/command.js';
+import {
+  generateSlashCommandFile,
+  generatePrefixCommandFile,
+  kebabToCamel,
+} from '../templates/generate/command.js';
 import { generateEventFile, KNOWN_EVENTS } from '../templates/generate/event.js';
 import { generateGuardFile } from '../templates/generate/guard.js';
 
@@ -83,7 +87,7 @@ describe('generateEventFile', () => {
   });
 
   it('uses Event type', () => {
-    expect(generateEventFile('messageCreate')).toContain("import type { Event }");
+    expect(generateEventFile('messageCreate')).toContain('import type { Event }');
   });
 
   it('sets the event name', () => {

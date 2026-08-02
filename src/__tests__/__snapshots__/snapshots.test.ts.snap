@@ -1,0 +1,2790 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`database templates > mongodb 1`] = `
+"import mongoose from 'mongoose';
+import 'dotenv/config';
+
+const userSchema = new mongoose.Schema(
+  {
+    _id:       { type: String },
+    balance:   { type: Number, default: 0 },
+    lastDaily: { type: Date,   default: null },
+  },
+  { timestamps: true },
+);
+
+export const User = mongoose.model('User', userSchema);
+
+export async function initDb(): Promise<void> {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI must be set in .env');
+  }
+  await mongoose.connect(uri);
+}
+"
+`;
+
+exports[`database templates > postgresql 1`] = `
+"import { drizzle } from 'drizzle-orm/node-postgres';
+import { pgTable, text, integer, timestamp } from 'drizzle-orm/pg-core';
+import pg from 'pg';
+import 'dotenv/config';
+
+const { Pool } = pg;
+
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+export const db = drizzle(pool);
+
+export const users = pgTable('users', {
+  id: text('id').primaryKey(),
+  balance: integer('balance').notNull().default(0),
+  lastDaily: timestamp('last_daily'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export async function initDb(): Promise<void> {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL must be set in .env');
+  }
+
+  await pool.query(\`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      balance INTEGER NOT NULL DEFAULT 0,
+      last_daily TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  \`);
+}
+"
+`;
+
+exports[`database templates > sqlite 1`] = `
+"import Database from 'better-sqlite3';
+import type { Database as BetterSqlite3Database } from 'better-sqlite3';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export const db: BetterSqlite3Database = new Database(join(__dirname, '..', '..', 'data.db'));
+
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+export function initDb(): void {
+  db.exec(\`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      balance INTEGER NOT NULL DEFAULT 0,
+      last_daily INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+  \`);
+}
+"
+`;
+
+exports[`economy commands — mongodb > balance 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { User } from '../../database/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('balance')
+  .setDescription('Check your wallet balance.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const doc = await User.findById(interaction.user.id);
+  const balance = doc?.balance ?? 0;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`## \${interaction.user.username}'s Wallet\`),
+    )
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(\`💰 **Balance:** \${balance} coins\`));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — mongodb > daily 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { User } from '../../database/index.js';
+
+const DAILY_AMOUNT = 100;
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+interface DailyClaim {
+  claimed: boolean;
+  balance: number;
+  remainingMs: number;
+}
+
+function isDuplicateKeyError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof error.code === 'number' &&
+    error.code === 11000
+  );
+}
+
+async function claimDailyReward(userId: string, now: Date): Promise<DailyClaim> {
+  const eligibleBefore = new Date(now.getTime() - COOLDOWN_MS);
+  const account = await User.findOneAndUpdate(
+    {
+      _id: userId,
+      $or: [
+        { lastDaily: null },
+        { lastDaily: { $exists: false } },
+        { lastDaily: { $lte: eligibleBefore } },
+      ],
+    },
+    { $inc: { balance: DAILY_AMOUNT }, $set: { lastDaily: now } },
+    { new: true },
+  );
+
+  if (account) {
+    return { claimed: true, balance: account.balance, remainingMs: 0 };
+  }
+
+  try {
+    const created = await User.create({ _id: userId, balance: DAILY_AMOUNT, lastDaily: now });
+    return { claimed: true, balance: created.balance, remainingMs: 0 };
+  } catch (error) {
+    if (!isDuplicateKeyError(error)) {
+      throw error;
+    }
+
+    const existing = await User.findById(userId);
+    if (!existing) {
+      throw error;
+    }
+
+    const lastClaim = existing.lastDaily?.getTime() ?? now.getTime();
+    const remainingMs = Math.max(0, COOLDOWN_MS - (now.getTime() - lastClaim));
+    return { claimed: false, balance: existing.balance, remainingMs };
+  }
+}
+
+export const data = new SlashCommandBuilder()
+  .setName('daily')
+  .setDescription('Claim your daily reward.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const userId = interaction.user.id;
+  const now = new Date();
+
+  const claim = await claimDailyReward(userId, now);
+
+  if (!claim.claimed) {
+    const remaining = Math.ceil(claim.remainingMs / 1000 / 60);
+    await interaction.reply({ content: \`⏳ Come back in **\${remaining}** minutes.\`, ephemeral: true });
+    return;
+  }
+
+  const newBalance = claim.balance;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`✅ You claimed your daily **\${DAILY_AMOUNT}** coins!\\n**New balance:** \${newBalance} coins\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — mongodb > leaderboard 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { User } from '../../database/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('leaderboard')
+  .setDescription('Shows the top 10 richest users.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const docs = await User.find().sort({ balance: -1 }).limit(10);
+
+  if (docs.length === 0) {
+    await interaction.reply({ content: 'No economy data yet.', ephemeral: true });
+    return;
+  }
+
+  const lines = docs.map((d, i) => \`**\${i + 1}.** <@\${d._id}> — \${d.balance} coins\`).join('\\n');
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('## 💰 Leaderboard'))
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(lines));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — no db > balance 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { getBalance } from '../../economy/store.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('balance')
+  .setDescription('Check your wallet balance.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const balance = getBalance(interaction.user.id);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`## \${interaction.user.username}'s Wallet\`),
+    )
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(\`💰 **Balance:** \${balance} coins\`));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — no db > balance i18n 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { getBalance } from '../../economy/store.js';
+import { useT } from '../../i18n/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('balance')
+  .setDescription('Check your wallet balance.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const balance = getBalance(interaction.user.id);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(t.economy.balance(interaction.user.username, balance)));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — no db > daily 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+import { DAILY_AMOUNT, claimDailyReward } from '../../economy/store.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('daily')
+  .setDescription('Claim your daily reward.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const claim = claimDailyReward(interaction.user.id);
+
+  if (!claim.claimed) {
+    const remaining = Math.ceil(claim.remainingMs / 1000 / 60);
+    await interaction.reply({ content: \`⏳ Come back in **\${remaining}** minutes.\`, ephemeral: true });
+    return;
+  }
+
+  const newBalance = claim.balance;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`✅ You claimed your daily **\${DAILY_AMOUNT}** coins!\\n**New balance:** \${newBalance} coins\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — no db > daily i18n 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { useT } from '../../i18n/index.js';
+
+import { DAILY_AMOUNT, claimDailyReward } from '../../economy/store.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('daily')
+  .setDescription('Claim your daily reward.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const claim = claimDailyReward(interaction.user.id);
+
+  if (!claim.claimed) {
+    const remaining = Math.ceil(claim.remainingMs / 1000 / 60);
+    await interaction.reply({ content: t.economy.dailyCooldown(\`\${remaining} minutes\`), ephemeral: true });
+    return;
+  }
+
+  const newBalance = claim.balance;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`\${t.economy.dailyClaim(DAILY_AMOUNT)}\\n**New balance:** \${newBalance} coins\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — no db > leaderboard 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { getLeaderboard } from '../../economy/store.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('leaderboard')
+  .setDescription('Shows the top 10 richest users.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const sorted = getLeaderboard();
+
+  if (sorted.length === 0) {
+    await interaction.reply({ content: 'No economy data yet.', ephemeral: true });
+    return;
+  }
+
+  const rows = sorted
+    .map(({ userId, balance }, i) => \`**\${i + 1}.** <@\${userId}> — \${balance} coins\`)
+    .join('\\n');
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('## 💰 Leaderboard'))
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(rows));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — no db > leaderboard i18n 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { getLeaderboard } from '../../economy/store.js';
+import { useT } from '../../i18n/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('leaderboard')
+  .setDescription('Shows the top 10 richest users.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const sorted = getLeaderboard();
+
+  if (sorted.length === 0) {
+    await interaction.reply({ content: 'No economy data yet.', ephemeral: true });
+    return;
+  }
+
+  const rows = sorted
+    .map(({ userId, balance }, i) => \`**\${i + 1}.** <@\${userId}> — \${balance} coins\`)
+    .join('\\n');
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(\`## \${t.economy.leaderboard}\`))
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(rows));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — postgresql > balance 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { db, users } from '../../database/index.js';
+import { eq } from 'drizzle-orm';
+
+export const data = new SlashCommandBuilder()
+  .setName('balance')
+  .setDescription('Check your wallet balance.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const [row] = await db.select().from(users).where(eq(users.id, interaction.user.id));
+  const balance = row?.balance ?? 0;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`## \${interaction.user.username}'s Wallet\`),
+    )
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(\`💰 **Balance:** \${balance} coins\`));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — postgresql > daily 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { pool } from '../../database/index.js';
+
+const DAILY_AMOUNT = 100;
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+interface DailyClaim {
+  claimed: boolean;
+  balance: number;
+  remainingMs: number;
+}
+
+async function claimDailyReward(userId: string, now: Date): Promise<DailyClaim> {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [userId]);
+
+    const { rows } = await client.query<{ balance: number; last_daily: Date | null }>(
+      'SELECT balance, last_daily FROM users WHERE id = $1 FOR UPDATE',
+      [userId],
+    );
+    const account = rows[0];
+    const lastClaim = account?.last_daily;
+
+    if (lastClaim) {
+      const remainingMs = COOLDOWN_MS - (now.getTime() - lastClaim.getTime());
+      if (remainingMs > 0) {
+        await client.query('COMMIT');
+        return { claimed: false, balance: account?.balance ?? 0, remainingMs };
+      }
+    }
+
+    const balance = (account?.balance ?? 0) + DAILY_AMOUNT;
+    await client.query(
+      \`INSERT INTO users (id, balance, last_daily) VALUES ($1, $2, $3)
+       ON CONFLICT(id) DO UPDATE SET balance = excluded.balance, last_daily = excluded.last_daily\`,
+      [userId, balance, now],
+    );
+    await client.query('COMMIT');
+
+    return { claimed: true, balance, remainingMs: 0 };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export const data = new SlashCommandBuilder()
+  .setName('daily')
+  .setDescription('Claim your daily reward.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const userId = interaction.user.id;
+  const now = new Date();
+
+  const claim = await claimDailyReward(userId, now);
+
+  if (!claim.claimed) {
+    const remaining = Math.ceil(claim.remainingMs / 1000 / 60);
+    await interaction.reply({ content: \`⏳ Come back in **\${remaining}** minutes.\`, ephemeral: true });
+    return;
+  }
+
+  const newBalance = claim.balance;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`✅ You claimed your daily **\${DAILY_AMOUNT}** coins!\\n**New balance:** \${newBalance} coins\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — postgresql > leaderboard 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { db, users } from '../../database/index.js';
+import { desc } from 'drizzle-orm';
+
+export const data = new SlashCommandBuilder()
+  .setName('leaderboard')
+  .setDescription('Shows the top 10 richest users.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const rows = await db.select().from(users).orderBy(desc(users.balance)).limit(10);
+
+  if (rows.length === 0) {
+    await interaction.reply({ content: 'No economy data yet.', ephemeral: true });
+    return;
+  }
+
+  const lines = rows.map((r, i) => \`**\${i + 1}.** <@\${r.id}> — \${r.balance} coins\`).join('\\n');
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('## 💰 Leaderboard'))
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(lines));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — sqlite > balance 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { db } from '../../database/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('balance')
+  .setDescription('Check your wallet balance.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const row = db.prepare('SELECT balance FROM users WHERE id = ?').get(interaction.user.id) as { balance: number } | undefined;
+  const balance = row?.balance ?? 0;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`## \${interaction.user.username}'s Wallet\`),
+    )
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(\`💰 **Balance:** \${balance} coins\`));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — sqlite > balance i18n 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { db } from '../../database/index.js';
+import { useT } from '../../i18n/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('balance')
+  .setDescription('Check your wallet balance.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const row = db.prepare('SELECT balance FROM users WHERE id = ?').get(interaction.user.id) as { balance: number } | undefined;
+  const balance = row?.balance ?? 0;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(t.economy.balance(interaction.user.username, balance)));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — sqlite > daily 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { db } from '../../database/index.js';
+
+const DAILY_AMOUNT = 100;
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+interface DailyClaim {
+  claimed: boolean;
+  balance: number;
+  remainingMs: number;
+}
+
+const claimDailyReward = db.transaction((userId: string, now: number): DailyClaim => {
+  const row = db.prepare('SELECT balance, last_daily FROM users WHERE id = ?').get(userId) as
+    | { balance: number; last_daily: number | null }
+    | undefined;
+  const lastClaim = row?.last_daily;
+
+  if (lastClaim !== null && lastClaim !== undefined) {
+    const remainingMs = COOLDOWN_MS - (now - lastClaim);
+    if (remainingMs > 0) {
+      return { claimed: false, balance: row?.balance ?? 0, remainingMs };
+    }
+  }
+
+  const balance = (row?.balance ?? 0) + DAILY_AMOUNT;
+  db.prepare(\`
+    INSERT INTO users (id, balance, last_daily) VALUES (?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET balance = excluded.balance, last_daily = excluded.last_daily
+  \`).run(userId, balance, now);
+
+  return { claimed: true, balance, remainingMs: 0 };
+});
+
+export const data = new SlashCommandBuilder()
+  .setName('daily')
+  .setDescription('Claim your daily reward.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const userId = interaction.user.id;
+  const now = Date.now();
+
+  const claim = claimDailyReward(userId, now);
+
+  if (!claim.claimed) {
+    const remaining = Math.ceil(claim.remainingMs / 1000 / 60);
+    await interaction.reply({ content: \`⏳ Come back in **\${remaining}** minutes.\`, ephemeral: true });
+    return;
+  }
+
+  const newBalance = claim.balance;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`✅ You claimed your daily **\${DAILY_AMOUNT}** coins!\\n**New balance:** \${newBalance} coins\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`economy commands — sqlite > leaderboard 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { db } from '../../database/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('leaderboard')
+  .setDescription('Shows the top 10 richest users.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const rows = db.prepare('SELECT id, balance FROM users ORDER BY balance DESC LIMIT 10').all() as { id: string; balance: number }[];
+
+  if (rows.length === 0) {
+    await interaction.reply({ content: 'No economy data yet.', ephemeral: true });
+    return;
+  }
+
+  const lines = rows.map((r, i) => \`**\${i + 1}.** <@\${r.id}> — \${r.balance} coins\`).join('\\n');
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('## 💰 Leaderboard'))
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(lines));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`env example > base 1`] = `
+"DISCORD_TOKEN=your_bot_token_here
+CLIENT_ID=your_client_id_here
+GUILD_ID=your_guild_id_here
+"
+`;
+
+exports[`env example > logging adds LOG_CHANNEL_ID 1`] = `
+"DISCORD_TOKEN=your_bot_token_here
+CLIENT_ID=your_client_id_here
+GUILD_ID=your_guild_id_here
+LOG_CHANNEL_ID=your_log_channel_id_here
+"
+`;
+
+exports[`env example > prefix adds PREFIX 1`] = `
+"DISCORD_TOKEN=your_bot_token_here
+CLIENT_ID=your_client_id_here
+GUILD_ID=your_guild_id_here
+PREFIX=!
+"
+`;
+
+exports[`events > interactionCreate 1`] = `
+"import { Events } from 'discord.js';
+import type { Interaction, Client } from 'discord.js';
+import type { Event } from '../types/index.js';
+import { logger } from '../utils/logger.js';
+
+const event: Event = {
+  name: Events.InteractionCreate,
+  async execute(...args: unknown[]): Promise<void> {
+    const interaction = args[0] as Interaction;
+    const client = args[1] as Client;
+
+    // ── Slash commands ──────────────────────────────────────────────────────
+    if (interaction.isChatInputCommand()) {
+      const command = client.commands.get(interaction.commandName);
+
+      if (!command) {
+        await interaction.reply({ content: 'Unknown command.', ephemeral: true });
+        return;
+      }
+
+      logger.debug(\`Executing /\${interaction.commandName}\`, 'command');
+
+      try {
+        await command.execute(interaction, client);
+      } catch (error) {
+        logger.error(\`Failed to execute /\${interaction.commandName}\`, error, 'command');
+        const msg = { content: 'There was an error executing that command.', ephemeral: true };
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(msg);
+        } else {
+          await interaction.reply(msg);
+        }
+      }
+      return;
+    }
+
+    // ── Button interactions ─────────────────────────────────────────────────
+    if (interaction.isButton()) {
+      const handler = client.buttons.get(interaction.customId);
+      if (!handler) return;
+
+      try {
+        await handler.execute(interaction, client);
+      } catch (error) {
+        logger.error(\`Button handler failed: \${interaction.customId}\`, error, 'button');
+        await interaction.reply({ content: 'There was an error handling that button.', ephemeral: true }).catch(() => null);
+      }
+      return;
+    }
+
+    // ── Select menu interactions ────────────────────────────────────────────
+    if (interaction.isAnySelectMenu()) {
+      const handler = client.selects.get(interaction.customId);
+      if (!handler) return;
+
+      try {
+        await handler.execute(interaction, client);
+      } catch (error) {
+        logger.error(\`Select handler failed: \${interaction.customId}\`, error, 'select');
+        await interaction.reply({ content: 'There was an error handling that selection.', ephemeral: true }).catch(() => null);
+      }
+      return;
+    }
+
+    // ── Modal submissions ───────────────────────────────────────────────────
+    if (interaction.isModalSubmit()) {
+      const handler = client.modals.get(interaction.customId);
+      if (!handler) return;
+
+      try {
+        await handler.execute(interaction, client);
+      } catch (error) {
+        logger.error(\`Modal handler failed: \${interaction.customId}\`, error, 'modal');
+        await interaction.reply({ content: 'There was an error handling that submission.', ephemeral: true }).catch(() => null);
+      }
+      return;
+    }
+  },
+};
+
+export default event;
+"
+`;
+
+exports[`events > interactionCreate i18n 1`] = `
+"import { Events } from 'discord.js';
+import type { Interaction, Client } from 'discord.js';
+import type { Event } from '../types/index.js';
+import { logger } from '../utils/logger.js';
+import { useT } from '../i18n/index.js';
+
+const event: Event = {
+  name: Events.InteractionCreate,
+  async execute(...args: unknown[]): Promise<void> {
+    const interaction = args[0] as Interaction;
+    const client = args[1] as Client;
+    const t = useT(interaction.guildId);
+
+    // ── Slash commands ──────────────────────────────────────────────────────
+    if (interaction.isChatInputCommand()) {
+      const command = client.commands.get(interaction.commandName);
+
+      if (!command) {
+        await interaction.reply({ content: t.errors.unknownCommand, ephemeral: true });
+        return;
+      }
+
+      logger.debug(\`Executing /\${interaction.commandName}\`, 'command');
+
+      try {
+        await command.execute(interaction, client);
+      } catch (error) {
+        logger.error(\`Failed to execute /\${interaction.commandName}\`, error, 'command');
+        const msg = { content: t.errors.commandFailed, ephemeral: true };
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(msg);
+        } else {
+          await interaction.reply(msg);
+        }
+      }
+      return;
+    }
+
+    // ── Button interactions ─────────────────────────────────────────────────
+    if (interaction.isButton()) {
+      const handler = client.buttons.get(interaction.customId);
+      if (!handler) return;
+
+      try {
+        await handler.execute(interaction, client);
+      } catch (error) {
+        logger.error(\`Button handler failed: \${interaction.customId}\`, error, 'button');
+        await interaction.reply({ content: 'There was an error handling that button.', ephemeral: true }).catch(() => null);
+      }
+      return;
+    }
+
+    // ── Select menu interactions ────────────────────────────────────────────
+    if (interaction.isAnySelectMenu()) {
+      const handler = client.selects.get(interaction.customId);
+      if (!handler) return;
+
+      try {
+        await handler.execute(interaction, client);
+      } catch (error) {
+        logger.error(\`Select handler failed: \${interaction.customId}\`, error, 'select');
+        await interaction.reply({ content: 'There was an error handling that selection.', ephemeral: true }).catch(() => null);
+      }
+      return;
+    }
+
+    // ── Modal submissions ───────────────────────────────────────────────────
+    if (interaction.isModalSubmit()) {
+      const handler = client.modals.get(interaction.customId);
+      if (!handler) return;
+
+      try {
+        await handler.execute(interaction, client);
+      } catch (error) {
+        logger.error(\`Modal handler failed: \${interaction.customId}\`, error, 'modal');
+        await interaction.reply({ content: 'There was an error handling that submission.', ephemeral: true }).catch(() => null);
+      }
+      return;
+    }
+  },
+};
+
+export default event;
+"
+`;
+
+exports[`events > messageCreate 1`] = `
+"import { Events } from 'discord.js';
+import type { Message, Client } from 'discord.js';
+import type { Event } from '../types/index.js';
+import { logger } from '../utils/logger.js';
+
+const PREFIX = process.env.PREFIX ?? '!';
+
+const event: Event = {
+  name: Events.MessageCreate,
+  async execute(...args: unknown[]): Promise<void> {
+    const message = args[0] as Message;
+    const client  = args[1] as Client;
+
+    if (message.author.bot || !message.content.startsWith(PREFIX)) return;
+
+    const parts = message.content.slice(PREFIX.length).trim().split(/\\s+/);
+    const commandName = parts.shift()?.toLowerCase();
+    if (!commandName) return;
+
+    const command = client.prefixCommands?.get(commandName);
+    if (!command) return;
+
+    logger.debug(\`Executing prefix !\${commandName}\`, 'command');
+
+    try {
+      await command.execute(message, parts, client);
+    } catch (error) {
+      logger.error(\`Prefix command failed: \${commandName}\`, error, 'command');
+      await message.reply('There was an error executing that command.').catch(() => null);
+    }
+  },
+};
+
+export default event;
+"
+`;
+
+exports[`events > ready 1`] = `
+"import type { Client } from 'discord.js';
+import type { Event } from '../types/index.js';
+import { logger } from '../utils/logger.js';
+
+const event: Event = {
+  name: 'ready',
+  once: true,
+  execute(...args: unknown[]): void {
+    const client = args[0] as Client;
+    logger.info(\`Logged in as \${client.user?.tag ?? 'unknown'}\`, 'ready');
+    logger.info(\`Serving \${client.guilds.cache.size} guild(s)\`, 'ready');
+  },
+};
+
+export default event;
+"
+`;
+
+exports[`fun commands > 8ball 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+const RESPONSES = [
+  'It is certain.',
+  'Without a doubt.',
+  'Yes, definitely.',
+  'Most likely.',
+  'Ask again later.',
+  'Cannot predict now.',
+  "Don't count on it.",
+  'Very doubtful.',
+  'My reply is no.',
+];
+
+export const data = new SlashCommandBuilder()
+  .setName('8ball')
+  .setDescription('Ask the magic 8-ball a question.')
+  .addStringOption((option) =>
+    option.setName('question').setDescription('Your question').setRequired(true),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const question = interaction.options.getString('question', true);
+  const answer = RESPONSES[Math.floor(Math.random() * RESPONSES.length)] ?? 'Unknown';
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(\`🎱 **\${question}\`))
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(answer));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`fun commands > 8ball i18n 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { useT } from '../../i18n/index.js';
+
+const RESPONSES = [
+  'It is certain.',
+  'Without a doubt.',
+  'Yes, definitely.',
+  'Most likely.',
+  'Ask again later.',
+  'Cannot predict now.',
+  "Don't count on it.",
+  'Very doubtful.',
+  'My reply is no.',
+];
+
+export const data = new SlashCommandBuilder()
+  .setName('8ball')
+  .setDescription('Ask the magic 8-ball a question.')
+  .addStringOption((option) =>
+    option.setName('question').setDescription('Your question').setRequired(true),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const question = interaction.options.getString('question', true);
+  const answer = RESPONSES[Math.floor(Math.random() * RESPONSES.length)] ?? 'Unknown';
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(\`🎱 **\${question}\`))
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(t.fun.eightBall(answer)));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`fun commands > coinflip 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('coinflip')
+  .setDescription('Flip a coin — heads or tails?');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const result = Math.random() < 0.5 ? '🪙 **Heads!**' : '🪙 **Tails!**';
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(result));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`fun commands > coinflip i18n 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { useT } from '../../i18n/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('coinflip')
+  .setDescription('Flip a coin — heads or tails?');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const result = Math.random() < 0.5 ? t.fun.coinflipHeads : t.fun.coinflipTails;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(result));
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`fun commands > meme 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
+  SeparatorBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client, MessageActionRowComponentBuilder } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+interface MemeResponse {
+  title: string;
+  url: string;
+  postLink: string;
+}
+
+export const data = new SlashCommandBuilder()
+  .setName('meme')
+  .setDescription('Get a random meme.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  await interaction.deferReply();
+
+  try {
+    const res = await fetch('https://meme-api.com/gimme');
+    const json = await res.json() as MemeResponse;
+
+    const container = new ContainerBuilder()
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent(\`## \${json.title}\`))
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(json.url)),
+      );
+
+    const linkRow = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+      new ButtonBuilder().setLabel('View on Reddit').setStyle(ButtonStyle.Link).setURL(json.postLink),
+    );
+
+    await interaction.editReply({
+      components: [container, linkRow],
+      flags: MessageFlags.IsComponentsV2,
+    });
+  } catch {
+    await interaction.editReply('Could not fetch a meme right now. Try again later.');
+  }
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`handlers > both command handler 1`] = `
+"import { readdirSync, statSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import type { Client } from 'discord.js';
+import type { Command, PrefixCommand } from '../types/index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export async function loadCommands(client: Client): Promise<void> {
+  const commandsPath = join(__dirname, '..', 'commands');
+  const entries = readdirSync(commandsPath);
+
+  for (const entry of entries) {
+    const entryPath = join(commandsPath, entry);
+    if (!statSync(entryPath).isDirectory()) continue;
+
+    const files = readdirSync(entryPath).filter((f) => /.[jt]s$/.test(f) && !f.endsWith('.d.ts'));
+
+    for (const file of files) {
+      const filePath = join(entryPath, file);
+
+      // Prefix commands live in commands/prefix/ and use a default export
+      if (entry === 'prefix') {
+        const mod = await import(pathToFileURL(filePath).href) as { default?: PrefixCommand };
+        const cmd = mod.default;
+        if (cmd?.name) {
+          client.prefixCommands.set(cmd.name, cmd);
+        }
+        continue;
+      }
+
+      const mod = await import(pathToFileURL(filePath).href) as Record<string, unknown>;
+      if ('data' in mod && 'execute' in mod) {
+        const command = mod as unknown as Command;
+        client.commands.set(command.data.name, command);
+      }
+    }
+  }
+}
+"
+`;
+
+exports[`handlers > event handler 1`] = `
+"import { readdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import type { Client } from 'discord.js';
+import type { Event } from '../types/index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export async function loadEvents(client: Client): Promise<void> {
+  const eventsPath = join(__dirname, '..', 'events');
+  const files = readdirSync(eventsPath).filter((f) => /.[jt]s$/.test(f) && !f.endsWith('.d.ts'));
+
+  for (const file of files) {
+    const filePath = join(eventsPath, file);
+    const event = await import(pathToFileURL(filePath).href) as { default: Event };
+
+    if (event.default.once) {
+      client.once(event.default.name, (...args) => void event.default.execute(...args, client));
+    } else {
+      client.on(event.default.name, (...args) => void event.default.execute(...args, client));
+    }
+  }
+}
+"
+`;
+
+exports[`handlers > interaction loader 1`] = `
+"import { existsSync, readdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import type { Client } from 'discord.js';
+import type { ButtonHandler, SelectHandler, ModalHandler } from '../types/index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export async function loadComponents(client: Client): Promise<void> {
+  const interactionsPath = join(__dirname, '..', 'interactions');
+  if (!existsSync(interactionsPath)) return;
+
+  const subdirs = readdirSync(interactionsPath);
+
+  for (const subdir of subdirs) {
+    const dirPath = join(interactionsPath, subdir);
+    const files = readdirSync(dirPath).filter((f) => /.[jt]s$/.test(f) && !f.endsWith('.d.ts'));
+
+    for (const file of files) {
+      const filePath = join(dirPath, file);
+      const mod = await import(pathToFileURL(filePath).href) as { default: unknown };
+      const handler = mod.default as { customId?: string; execute?: unknown };
+
+      if (!handler?.customId || !handler?.execute) continue;
+
+      if (subdir === 'buttons') {
+        client.buttons.set(handler.customId, handler as ButtonHandler);
+      } else if (subdir === 'selects') {
+        client.selects.set(handler.customId, handler as SelectHandler);
+      } else if (subdir === 'modals') {
+        client.modals.set(handler.customId, handler as ModalHandler);
+      }
+    }
+  }
+}
+"
+`;
+
+exports[`handlers > prefix command handler 1`] = `
+"import { readdirSync, statSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import type { Client } from 'discord.js';
+import type { Command, PrefixCommand } from '../types/index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export async function loadCommands(client: Client): Promise<void> {
+  const commandsPath = join(__dirname, '..', 'commands');
+  const entries = readdirSync(commandsPath);
+
+  for (const entry of entries) {
+    const entryPath = join(commandsPath, entry);
+    if (!statSync(entryPath).isDirectory()) continue;
+
+    const files = readdirSync(entryPath).filter((f) => /.[jt]s$/.test(f) && !f.endsWith('.d.ts'));
+
+    for (const file of files) {
+      const filePath = join(entryPath, file);
+
+      // Prefix commands live in commands/prefix/ and use a default export
+      if (entry === 'prefix') {
+        const mod = await import(pathToFileURL(filePath).href) as { default?: PrefixCommand };
+        const cmd = mod.default;
+        if (cmd?.name) {
+          client.prefixCommands.set(cmd.name, cmd);
+        }
+        continue;
+      }
+
+    }
+  }
+}
+"
+`;
+
+exports[`handlers > slash command handler 1`] = `
+"import { readdirSync, statSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import type { Client } from 'discord.js';
+import type { Command } from '../types/index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export async function loadCommands(client: Client): Promise<void> {
+  const commandsPath = join(__dirname, '..', 'commands');
+  const entries = readdirSync(commandsPath);
+
+  for (const entry of entries) {
+    const entryPath = join(commandsPath, entry);
+    if (!statSync(entryPath).isDirectory()) continue;
+
+    const files = readdirSync(entryPath).filter((f) => /.[jt]s$/.test(f) && !f.endsWith('.d.ts'));
+
+    for (const file of files) {
+      const filePath = join(entryPath, file);
+
+      const mod = await import(pathToFileURL(filePath).href) as Record<string, unknown>;
+      if ('data' in mod && 'execute' in mod) {
+        const command = mod as unknown as Command;
+        client.commands.set(command.data.name, command);
+      }
+    }
+  }
+}
+"
+`;
+
+exports[`in-memory economy store > matches snapshot 1`] = `
+"export const DAILY_AMOUNT = 100;
+export const DAILY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+interface EconomyAccount {
+  balance: number;
+  lastDaily: number | null;
+}
+
+export interface DailyClaimResult {
+  claimed: boolean;
+  balance: number;
+  remainingMs: number;
+}
+
+export interface EconomyLeaderboardEntry {
+  userId: string;
+  balance: number;
+}
+
+const accounts = new Map<string, EconomyAccount>();
+
+export function getBalance(userId: string): number {
+  return accounts.get(userId)?.balance ?? 0;
+}
+
+export function getLeaderboard(limit = 10): EconomyLeaderboardEntry[] {
+  return [...accounts.entries()]
+    .map(([userId, account]) => ({ userId, balance: account.balance }))
+    .sort((left, right) => right.balance - left.balance)
+    .slice(0, limit);
+}
+
+export function claimDailyReward(userId: string, now = Date.now()): DailyClaimResult {
+  const account = accounts.get(userId) ?? { balance: 0, lastDaily: null };
+
+  if (account.lastDaily !== null) {
+    const remainingMs = DAILY_COOLDOWN_MS - (now - account.lastDaily);
+    if (remainingMs > 0) {
+      return { claimed: false, balance: account.balance, remainingMs };
+    }
+  }
+
+  const balance = account.balance + DAILY_AMOUNT;
+  accounts.set(userId, { balance, lastDaily: now });
+
+  return { claimed: true, balance, remainingMs: 0 };
+}
+"
+`;
+
+exports[`index.ts template > full stack 1`] = `
+"import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import 'dotenv/config';
+import { loadCommands } from './handlers/commandHandler.js';
+import { loadComponents } from './handlers/interactionLoader.js';
+import { loadEvents } from './handlers/eventHandler.js';
+import { logger } from './utils/logger.js';
+import { env } from './utils/env.js';
+import { initDb } from './database/index.js';
+import type { Command, PrefixCommand, ButtonHandler, SelectHandler, ModalHandler } from './types/index.js';
+
+declare module 'discord.js' {
+  interface Client {
+    commands: Collection<string, Command>;
+    prefixCommands: Collection<string, PrefixCommand>;
+    buttons:  Collection<string, ButtonHandler>;
+    selects:  Collection<string, SelectHandler>;
+    modals:   Collection<string, ModalHandler>;
+  }
+}
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildModeration,
+  ],
+});
+
+client.commands = new Collection();
+client.prefixCommands = new Collection();
+client.buttons  = new Collection();
+client.selects  = new Collection();
+client.modals   = new Collection();
+
+
+await initDb();
+logger.info('Database initialized.', 'db');
+await loadCommands(client);
+await loadComponents(client);
+await loadEvents(client);
+
+process.on('unhandledRejection', (error) => {
+  logger.error('Unhandled promise rejection', error, 'process');
+});
+
+logger.info('Connecting to Discord...', 'bot');
+await client.login(env.DISCORD_TOKEN);
+"
+`;
+
+exports[`index.ts template > logging feature adds member/moderation intents 1`] = `
+"import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import 'dotenv/config';
+import { loadCommands } from './handlers/commandHandler.js';
+import { loadComponents } from './handlers/interactionLoader.js';
+import { loadEvents } from './handlers/eventHandler.js';
+import { logger } from './utils/logger.js';
+import { env } from './utils/env.js';
+import type { Command, ButtonHandler, SelectHandler, ModalHandler } from './types/index.js';
+
+declare module 'discord.js' {
+  interface Client {
+    commands: Collection<string, Command>;
+    buttons:  Collection<string, ButtonHandler>;
+    selects:  Collection<string, SelectHandler>;
+    modals:   Collection<string, ModalHandler>;
+  }
+}
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildModeration,
+  ],
+});
+
+client.commands = new Collection();
+client.buttons  = new Collection();
+client.selects  = new Collection();
+client.modals   = new Collection();
+
+
+await loadCommands(client);
+await loadComponents(client);
+await loadEvents(client);
+
+process.on('unhandledRejection', (error) => {
+  logger.error('Unhandled promise rejection', error, 'process');
+});
+
+logger.info('Connecting to Discord...', 'bot');
+await client.login(env.DISCORD_TOKEN);
+"
+`;
+
+exports[`index.ts template > mongodb initializes on startup 1`] = `
+"import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import 'dotenv/config';
+import { loadCommands } from './handlers/commandHandler.js';
+import { loadComponents } from './handlers/interactionLoader.js';
+import { loadEvents } from './handlers/eventHandler.js';
+import { logger } from './utils/logger.js';
+import { env } from './utils/env.js';
+import { initDb } from './database/index.js';
+import type { Command, ButtonHandler, SelectHandler, ModalHandler } from './types/index.js';
+
+declare module 'discord.js' {
+  interface Client {
+    commands: Collection<string, Command>;
+    buttons:  Collection<string, ButtonHandler>;
+    selects:  Collection<string, SelectHandler>;
+    modals:   Collection<string, ModalHandler>;
+  }
+}
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+  ],
+});
+
+client.commands = new Collection();
+client.buttons  = new Collection();
+client.selects  = new Collection();
+client.modals   = new Collection();
+
+
+await initDb();
+logger.info('Database initialized.', 'db');
+await loadCommands(client);
+await loadComponents(client);
+await loadEvents(client);
+
+process.on('unhandledRejection', (error) => {
+  logger.error('Unhandled promise rejection', error, 'process');
+});
+
+logger.info('Connecting to Discord...', 'bot');
+await client.login(env.DISCORD_TOKEN);
+"
+`;
+
+exports[`index.ts template > prefix + both commands 1`] = `
+"import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import 'dotenv/config';
+import { loadCommands } from './handlers/commandHandler.js';
+import { loadComponents } from './handlers/interactionLoader.js';
+import { loadEvents } from './handlers/eventHandler.js';
+import { logger } from './utils/logger.js';
+import { env } from './utils/env.js';
+import type { Command, PrefixCommand, ButtonHandler, SelectHandler, ModalHandler } from './types/index.js';
+
+declare module 'discord.js' {
+  interface Client {
+    commands: Collection<string, Command>;
+    prefixCommands: Collection<string, PrefixCommand>;
+    buttons:  Collection<string, ButtonHandler>;
+    selects:  Collection<string, SelectHandler>;
+    modals:   Collection<string, ModalHandler>;
+  }
+}
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+});
+
+client.commands = new Collection();
+client.prefixCommands = new Collection();
+client.buttons  = new Collection();
+client.selects  = new Collection();
+client.modals   = new Collection();
+
+
+await loadCommands(client);
+await loadComponents(client);
+await loadEvents(client);
+
+process.on('unhandledRejection', (error) => {
+  logger.error('Unhandled promise rejection', error, 'process');
+});
+
+logger.info('Connecting to Discord...', 'bot');
+await client.login(env.DISCORD_TOKEN);
+"
+`;
+
+exports[`index.ts template > slash-only base 1`] = `
+"import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import 'dotenv/config';
+import { loadCommands } from './handlers/commandHandler.js';
+import { loadComponents } from './handlers/interactionLoader.js';
+import { loadEvents } from './handlers/eventHandler.js';
+import { logger } from './utils/logger.js';
+import { env } from './utils/env.js';
+import type { Command, ButtonHandler, SelectHandler, ModalHandler } from './types/index.js';
+
+declare module 'discord.js' {
+  interface Client {
+    commands: Collection<string, Command>;
+    buttons:  Collection<string, ButtonHandler>;
+    selects:  Collection<string, SelectHandler>;
+    modals:   Collection<string, ModalHandler>;
+  }
+}
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+  ],
+});
+
+client.commands = new Collection();
+client.buttons  = new Collection();
+client.selects  = new Collection();
+client.modals   = new Collection();
+
+
+await loadCommands(client);
+await loadComponents(client);
+await loadEvents(client);
+
+process.on('unhandledRejection', (error) => {
+  logger.error('Unhandled promise rejection', error, 'process');
+});
+
+logger.info('Connecting to Discord...', 'bot');
+await client.login(env.DISCORD_TOKEN);
+"
+`;
+
+exports[`logging event templates > banAdd 1`] = `
+"import { Events, EmbedBuilder } from 'discord.js';
+import type { Guild, User } from 'discord.js';
+import type { Event } from '../types/index.js';
+
+const event: Event = {
+  name: Events.GuildBanAdd,
+  async execute(...args: unknown[]): Promise<void> {
+    const { guild, user } = args[0] as { guild: Guild; user: User };
+    const channelId = process.env.LOG_CHANNEL_ID;
+    if (!channelId) return;
+
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel?.isTextBased()) return;
+
+    const embed = new EmbedBuilder()
+      .setColor(0xe74c3c)
+      .setTitle('Member Banned')
+      .setThumbnail(user.displayAvatarURL())
+      .addFields(
+        { name: 'User', value: \`<@\${user.id}> (\${user.tag})\`, inline: true },
+      )
+      .setFooter({ text: \`ID: \${user.id}\` })
+      .setTimestamp();
+
+    await channel.send({ embeds: [embed] });
+  },
+};
+
+export default event;
+"
+`;
+
+exports[`logging event templates > banRemove 1`] = `
+"import { Events, EmbedBuilder } from 'discord.js';
+import type { Guild, User } from 'discord.js';
+import type { Event } from '../types/index.js';
+
+const event: Event = {
+  name: Events.GuildBanRemove,
+  async execute(...args: unknown[]): Promise<void> {
+    const { guild, user } = args[0] as { guild: Guild; user: User };
+    const channelId = process.env.LOG_CHANNEL_ID;
+    if (!channelId) return;
+
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel?.isTextBased()) return;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setTitle('Member Unbanned')
+      .setThumbnail(user.displayAvatarURL())
+      .addFields(
+        { name: 'User', value: \`<@\${user.id}> (\${user.tag})\`, inline: true },
+      )
+      .setFooter({ text: \`ID: \${user.id}\` })
+      .setTimestamp();
+
+    await channel.send({ embeds: [embed] });
+  },
+};
+
+export default event;
+"
+`;
+
+exports[`logging event templates > memberAdd 1`] = `
+"import { Events, EmbedBuilder } from 'discord.js';
+import type { GuildMember } from 'discord.js';
+import type { Event } from '../types/index.js';
+
+const event: Event = {
+  name: Events.GuildMemberAdd,
+  async execute(...args: unknown[]): Promise<void> {
+    const member = args[0] as GuildMember;
+    const channelId = process.env.LOG_CHANNEL_ID;
+    if (!channelId) return;
+
+    const channel = member.guild.channels.cache.get(channelId);
+    if (!channel?.isTextBased()) return;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setTitle('Member Joined')
+      .setThumbnail(member.user.displayAvatarURL())
+      .addFields(
+        { name: 'User',    value: \`<@\${member.id}> (\${member.user.tag})\`, inline: true },
+        { name: 'Account', value: \`<t:\${Math.floor(member.user.createdTimestamp / 1000)}:R>\`, inline: true },
+      )
+      .setFooter({ text: \`ID: \${member.id}\` })
+      .setTimestamp();
+
+    await channel.send({ embeds: [embed] });
+  },
+};
+
+export default event;
+"
+`;
+
+exports[`logging event templates > memberRemove 1`] = `
+"import { Events, EmbedBuilder } from 'discord.js';
+import type { GuildMember, PartialGuildMember } from 'discord.js';
+import type { Event } from '../types/index.js';
+
+const event: Event = {
+  name: Events.GuildMemberRemove,
+  async execute(...args: unknown[]): Promise<void> {
+    const member = args[0] as GuildMember | PartialGuildMember;
+    const channelId = process.env.LOG_CHANNEL_ID;
+    if (!channelId) return;
+
+    const channel = member.guild.channels.cache.get(channelId);
+    if (!channel?.isTextBased()) return;
+
+    const embed = new EmbedBuilder()
+      .setColor(0xe74c3c)
+      .setTitle('Member Left')
+      .setThumbnail(member.user?.displayAvatarURL() ?? null)
+      .addFields(
+        { name: 'User', value: member.user ? \`<@\${member.id}> (\${member.user.tag})\` : \`ID: \${member.id}\`, inline: true },
+      )
+      .setFooter({ text: \`ID: \${member.id}\` })
+      .setTimestamp();
+
+    await channel.send({ embeds: [embed] });
+  },
+};
+
+export default event;
+"
+`;
+
+exports[`logging event templates > messageDelete 1`] = `
+"import { Events, EmbedBuilder } from 'discord.js';
+import type { Message, PartialMessage } from 'discord.js';
+import type { Event } from '../types/index.js';
+
+const event: Event = {
+  name: Events.MessageDelete,
+  async execute(...args: unknown[]): Promise<void> {
+    const message = args[0] as Message | PartialMessage;
+    if (message.author?.bot) return;
+
+    const channelId = process.env.LOG_CHANNEL_ID;
+    if (!channelId) return;
+
+    const logChannel = message.guild?.channels.cache.get(channelId);
+    if (!logChannel?.isTextBased()) return;
+
+    const embed = new EmbedBuilder()
+      .setColor(0xe67e22)
+      .setTitle('Message Deleted')
+      .addFields(
+        { name: 'Author',  value: message.author ? \`<@\${message.author.id}>\` : 'Unknown', inline: true },
+        { name: 'Channel', value: \`<#\${message.channelId}>\`, inline: true },
+        { name: 'Content', value: message.content?.slice(0, 1024) || '*Content unavailable*' },
+      )
+      .setFooter({ text: \`Message ID: \${message.id}\` })
+      .setTimestamp();
+
+    await logChannel.send({ embeds: [embed] });
+  },
+};
+
+export default event;
+"
+`;
+
+exports[`logging event templates > messageUpdate 1`] = `
+"import { Events, EmbedBuilder } from 'discord.js';
+import type { Message, PartialMessage } from 'discord.js';
+import type { Event } from '../types/index.js';
+
+const event: Event = {
+  name: Events.MessageUpdate,
+  async execute(...args: unknown[]): Promise<void> {
+    const oldMessage = args[0] as Message | PartialMessage;
+    const newMessage = args[1] as Message | PartialMessage;
+
+    if (newMessage.author?.bot) return;
+    if (oldMessage.content === newMessage.content) return;
+
+    const channelId = process.env.LOG_CHANNEL_ID;
+    if (!channelId) return;
+
+    const logChannel = newMessage.guild?.channels.cache.get(channelId);
+    if (!logChannel?.isTextBased()) return;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x3498db)
+      .setTitle('Message Edited')
+      .addFields(
+        { name: 'Author',  value: newMessage.author ? \`<@\${newMessage.author.id}>\` : 'Unknown', inline: true },
+        { name: 'Channel', value: \`<#\${newMessage.channelId}>\`, inline: true },
+        { name: 'Before',  value: oldMessage.content?.slice(0, 512) || '*Content unavailable*' },
+        { name: 'After',   value: newMessage.content?.slice(0, 512) || '*Content unavailable*' },
+      )
+      .setFooter({ text: \`Message ID: \${newMessage.id}\` })
+      .setTimestamp();
+
+    await logChannel.send({ embeds: [embed] });
+  },
+};
+
+export default event;
+"
+`;
+
+exports[`moderation commands > ban 1`] = `
+"import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('ban')
+  .setDescription('Bans a member from the server.')
+  .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user to ban').setRequired(true),
+  )
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Reason for the ban').setRequired(false),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const target = interaction.options.getUser('user', true);
+  const reason = interaction.options.getString('reason') ?? 'No reason provided';
+  const member = interaction.guild?.members.cache.get(target.id);
+
+  if (!member) {
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('❌ User not found in this server.'))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  if (!member.bannable) {
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('❌ I cannot ban this user.'))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  await member.ban({ reason });
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`✅ Banned **\${target.tag}**\\n**Reason:** \${reason}\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`moderation commands > ban i18n 1`] = `
+"import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { useT } from '../../i18n/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('ban')
+  .setDescription('Bans a member from the server.')
+  .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user to ban').setRequired(true),
+  )
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Reason for the ban').setRequired(false),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const target = interaction.options.getUser('user', true);
+  const reason = interaction.options.getString('reason') ?? 'No reason provided';
+  const member = interaction.guild?.members.cache.get(target.id);
+
+  if (!member) {
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(t.moderation.noTarget))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  if (!member.bannable) {
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(t.moderation.cantTarget))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  await member.ban({ reason });
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(t.moderation.banned(target.tag, reason)),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`moderation commands > kick 1`] = `
+"import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('kick')
+  .setDescription('Kicks a member from the server.')
+  .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user to kick').setRequired(true),
+  )
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Reason for the kick').setRequired(false),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const target = interaction.options.getUser('user', true);
+  const reason = interaction.options.getString('reason') ?? 'No reason provided';
+  const member = interaction.guild?.members.cache.get(target.id);
+
+  if (!member) {
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('❌ User not found in this server.'))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  if (!member.kickable) {
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('❌ I cannot kick this user.'))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  await member.kick(reason);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`✅ Kicked **\${target.tag}**\\n**Reason:** \${reason}\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`moderation commands > kick i18n 1`] = `
+"import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { useT } from '../../i18n/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('kick')
+  .setDescription('Kicks a member from the server.')
+  .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user to kick').setRequired(true),
+  )
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Reason for the kick').setRequired(false),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const target = interaction.options.getUser('user', true);
+  const reason = interaction.options.getString('reason') ?? 'No reason provided';
+  const member = interaction.guild?.members.cache.get(target.id);
+
+  if (!member) {
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(t.moderation.noTarget))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  if (!member.kickable) {
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(t.moderation.cantTarget))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  await member.kick(reason);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(t.moderation.kicked(target.tag, reason)),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`moderation commands > timeout 1`] = `
+"import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('timeout')
+  .setDescription('Times out a member.')
+  .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user to timeout').setRequired(true),
+  )
+  .addIntegerOption((option) =>
+    option
+      .setName('minutes')
+      .setDescription('Duration in minutes (max 40320)')
+      .setRequired(true)
+      .setMinValue(1)
+      .setMaxValue(40320),
+  )
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Reason').setRequired(false),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const target = interaction.options.getUser('user', true);
+  const minutes = interaction.options.getInteger('minutes', true);
+  const reason = interaction.options.getString('reason') ?? 'No reason provided';
+  const member = interaction.guild?.members.cache.get(target.id);
+
+  if (!member) {
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('❌ User not found in this server.'))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  await member.timeout(minutes * 60 * 1000, reason);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`✅ Timed out **\${target.tag}** for **\${minutes}** minute(s)\\n**Reason:** \${reason}\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`moderation commands > timeout i18n 1`] = `
+"import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { useT } from '../../i18n/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('timeout')
+  .setDescription('Times out a member.')
+  .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user to timeout').setRequired(true),
+  )
+  .addIntegerOption((option) =>
+    option
+      .setName('minutes')
+      .setDescription('Duration in minutes (max 40320)')
+      .setRequired(true)
+      .setMinValue(1)
+      .setMaxValue(40320),
+  )
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Reason').setRequired(false),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const target = interaction.options.getUser('user', true);
+  const minutes = interaction.options.getInteger('minutes', true);
+  const reason = interaction.options.getString('reason') ?? 'No reason provided';
+  const member = interaction.guild?.members.cache.get(target.id);
+
+  if (!member) {
+    await interaction.reply({
+      components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(t.moderation.noTarget))],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  await member.timeout(minutes * 60 * 1000, reason);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(t.moderation.timedOut(target.tag, \`\${minutes} minute(s)\`)),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`moderation commands > warn 1`] = `
+"import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('warn')
+  .setDescription('Warns a member.')
+  .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user to warn').setRequired(true),
+  )
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Reason for the warning').setRequired(true),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const target = interaction.options.getUser('user', true);
+  const reason = interaction.options.getString('reason', true);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`⚠️ **\${target.tag}** has been warned\\n**Reason:** \${reason}\`),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`moderation commands > warn i18n 1`] = `
+"import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { useT } from '../../i18n/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('warn')
+  .setDescription('Warns a member.')
+  .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user to warn').setRequired(true),
+  )
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Reason for the warning').setRequired(true),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const target = interaction.options.getUser('user', true);
+  const reason = interaction.options.getString('reason', true);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(t.moderation.warned(target.tag, reason)),
+    );
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`package.json generator > base 1`] = `
+{
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2",
+  },
+  "description": "Discord bot: snap-bot",
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3",
+  },
+  "engines": {
+    "node": ">=22.13.0",
+  },
+  "name": "snap-bot",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "tsx src/deploy-commands.ts",
+    "dev": "tsx watch src/index.ts",
+    "format": "prettier --write src",
+    "lint": "eslint src",
+    "start": "node dist/index.js",
+  },
+  "type": "module",
+  "version": "1.0.0",
+}
+`;
+
+exports[`package.json generator > mongodb db 1`] = `
+{
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2",
+    "mongoose": "^9.8.1",
+  },
+  "description": "Discord bot: snap-bot",
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3",
+  },
+  "engines": {
+    "node": ">=22.13.0",
+  },
+  "name": "snap-bot",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "tsx src/deploy-commands.ts",
+    "dev": "tsx watch src/index.ts",
+    "format": "prettier --write src",
+    "lint": "eslint src",
+    "start": "node dist/index.js",
+  },
+  "type": "module",
+  "version": "1.0.0",
+}
+`;
+
+exports[`package.json generator > pg db 1`] = `
+{
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.22.0",
+  },
+  "description": "Discord bot: snap-bot",
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@types/pg": "^8.20.0",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3",
+  },
+  "engines": {
+    "node": ">=22.13.0",
+  },
+  "name": "snap-bot",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "tsx src/deploy-commands.ts",
+    "dev": "tsx watch src/index.ts",
+    "format": "prettier --write src",
+    "lint": "eslint src",
+    "start": "node dist/index.js",
+  },
+  "type": "module",
+  "version": "1.0.0",
+}
+`;
+
+exports[`package.json generator > sqlite db 1`] = `
+{
+  "dependencies": {
+    "better-sqlite3": "^13.0.1",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2",
+  },
+  "description": "Discord bot: snap-bot",
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.20.1",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3",
+  },
+  "engines": {
+    "node": ">=22.13.0",
+  },
+  "name": "snap-bot",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "tsx src/deploy-commands.ts",
+    "dev": "tsx watch src/index.ts",
+    "format": "prettier --write src",
+    "lint": "eslint src",
+    "start": "node dist/index.js",
+  },
+  "type": "module",
+  "version": "1.0.0",
+}
+`;
+
+exports[`types.ts > matches snapshot 1`] = `
+"import type {
+  SlashCommandBuilder,
+  SlashCommandOptionsOnlyBuilder,
+  ChatInputCommandInteraction,
+  ButtonInteraction,
+  AnySelectMenuInteraction,
+  ModalSubmitInteraction,
+  Client,
+  Message,
+} from 'discord.js';
+
+export interface Command {
+  data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
+  execute: (interaction: ChatInputCommandInteraction, client: Client) => Promise<void>;
+}
+
+export interface PrefixCommand {
+  name: string;
+  description: string;
+  execute: (message: Message, args: string[], client: Client) => Promise<void>;
+}
+
+export interface Event {
+  name: string;
+  once?: boolean;
+  execute: (...args: unknown[]) => Promise<void> | void;
+}
+
+export interface ButtonHandler {
+  customId: string;
+  execute: (interaction: ButtonInteraction, client: Client) => Promise<void>;
+}
+
+export interface SelectHandler {
+  customId: string;
+  execute: (interaction: AnySelectMenuInteraction, client: Client) => Promise<void>;
+}
+
+export interface ModalHandler {
+  customId: string;
+  execute: (interaction: ModalSubmitInteraction, client: Client) => Promise<void>;
+}
+"
+`;
+
+exports[`utility commands > avatar 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  SectionBuilder,
+  TextDisplayBuilder,
+  ThumbnailBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('avatar')
+  .setDescription('Shows a user\\'s avatar.')
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user whose avatar to show').setRequired(false),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const target = interaction.options.getUser('user') ?? interaction.user;
+  const avatarUrl = target.displayAvatarURL({ size: 512 });
+
+  const container = new ContainerBuilder()
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(\`## \${target.username}'s Avatar\`),
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarUrl)),
+    );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel('Open full size')
+      .setStyle(ButtonStyle.Link)
+      .setURL(avatarUrl),
+  );
+
+  await interaction.reply({
+    components: [container, row],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`utility commands > help full 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('help')
+  .setDescription('List all available commands.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("## 📖 Commands\\n\\n### General\\n\`/ping\` — Check bot latency\\n\`/help\` — Show this menu\\n\\n### Utility\\n\`/userinfo\` — Info about a user\\n\`/serverinfo\` — Server statistics\\n\`/avatar\` — Show user avatar\\n\\n### Moderation\\n\`/ban\` — Ban a member\\n\`/kick\` — Kick a member\\n\`/timeout\` — Timeout a member\\n\`/warn\` — Warn a member\\n\\n### Fun\\n\`/coinflip\` — Flip a coin\\n\`/8ball\` — Ask the magic 8-ball\\n\`/meme\` — Random meme\\n\\n### Economy\\n\`/balance\` — Check your coin balance\\n\`/daily\` — Claim your daily reward\\n\`/leaderboard\` — Top 10 richest users\\n\\n### Demo\\n\`/demo\` — Components v2 interactive demo\\n\\n### Settings\\n\`/locale\` — Change the bot language for this server"),
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent('> Use \`/help\` any time to see this list.'),
+    );
+
+  await interaction.reply({
+    components: [container],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`utility commands > help prefix 1`] = `
+"import type { Message, Client } from 'discord.js';
+import type { PrefixCommand } from '../../types/index.js';
+
+const help: PrefixCommand = {
+  name: 'help',
+  description: 'List available commands.',
+  async execute(message: Message, _args: string[], _client: Client): Promise<void> {
+    await message.reply("**General**\\\\n\`!help\` — Show this menu\\\\n\`!ping\` — Check bot latency");
+  },
+};
+
+export default help;
+"
+`;
+
+exports[`utility commands > help slash 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('help')
+  .setDescription('List all available commands.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("## 📖 Commands\\n\\n### General\\n\`/ping\` — Check bot latency\\n\`/help\` — Show this menu"),
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent('> Use \`/help\` any time to see this list.'),
+    );
+
+  await interaction.reply({
+    components: [container],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`utility commands > ping 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('ping')
+  .setDescription('Replies with Pong and shows latency.');
+
+export async function execute(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
+  const sent = await interaction.reply({
+    components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('Pinging...'))],
+    flags: MessageFlags.IsComponentsV2,
+    withResponse: true,
+  });
+
+  const latency = (sent.resource?.message?.createdTimestamp ?? Date.now()) - interaction.createdTimestamp;
+  const wsLatency = client.ws.ping;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(\`🏓 Pong!\\n**Latency:** \${latency}ms | **WebSocket:** \${wsLatency}ms\`),
+    );
+
+  await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`utility commands > ping i18n 1`] = `
+"import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+import { useT } from '../../i18n/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('ping')
+  .setDescription('Replies with Pong and shows latency.');
+
+export async function execute(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
+  const t = useT(interaction.guildId);
+  const sent = await interaction.reply({
+    components: [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(t.ping.pinging))],
+    flags: MessageFlags.IsComponentsV2,
+    withResponse: true,
+  });
+
+  const latency = (sent.resource?.message?.createdTimestamp ?? Date.now()) - interaction.createdTimestamp;
+  const wsLatency = client.ws.ping;
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(t.ping.result(latency, wsLatency)),
+    );
+
+  await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`utility commands > serverinfo 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  SectionBuilder,
+  TextDisplayBuilder,
+  ThumbnailBuilder,
+  SeparatorBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('serverinfo')
+  .setDescription('Shows information about this server.');
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const guild = interaction.guild;
+  if (!guild) {
+    await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+    return;
+  }
+
+  const iconURL = guild.iconURL() ?? 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+  const container = new ContainerBuilder()
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            \`## \${guild.name}\\n**Owner:** <@\${guild.ownerId}>\\n**Members:** \${guild.memberCount}\\n**Created:** <t:\${Math.floor(guild.createdTimestamp / 1000)}:R>\`,
+          ),
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconURL)),
+    )
+    .addSeparatorComponents(new SeparatorBuilder());
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;
+
+exports[`utility commands > userinfo 1`] = `
+"import {
+  SlashCommandBuilder,
+  ContainerBuilder,
+  SectionBuilder,
+  TextDisplayBuilder,
+  ThumbnailBuilder,
+  SeparatorBuilder,
+  MessageFlags,
+} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import type { Command } from '../../types/index.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('userinfo')
+  .setDescription('Shows information about a user.')
+  .addUserOption((option) =>
+    option.setName('user').setDescription('The user to get info about').setRequired(false),
+  );
+
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+  const target = interaction.options.getUser('user') ?? interaction.user;
+  const member = interaction.guild?.members.cache.get(target.id);
+  const joinedAt = member?.joinedTimestamp ? \`<t:\${Math.floor(member.joinedTimestamp / 1000)}:R>\` : 'N/A';
+
+  const container = new ContainerBuilder()
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            \`## \${target.tag}\\n**ID:** \${target.id}\\n**Joined Discord:** <t:\${Math.floor(target.createdTimestamp / 1000)}:R>\\n**Joined Server:** \${joinedAt}\`,
+          ),
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(target.displayAvatarURL())),
+    )
+    .addSeparatorComponents(new SeparatorBuilder());
+
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
+export default { data, execute } satisfies Command;
+"
+`;

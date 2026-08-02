@@ -1,9 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { generateExampleButton, generateOpenModalButton } from '../templates/interactions/button.js';
+import {
+  generateExampleButton,
+  generateOpenModalButton,
+} from '../templates/interactions/button.js';
 import { generateExampleSelect } from '../templates/interactions/select.js';
 import { generateExampleModal } from '../templates/interactions/modal.js';
 import { generateDemoCommand } from '../templates/commands/demo.js';
-import { generateButtonFile, generateSelectFile, generateModalFile } from '../templates/generate/interaction.js';
+import {
+  generateButtonFile,
+  generateSelectFile,
+  generateModalFile,
+} from '../templates/generate/interaction.js';
 
 describe('generateExampleButton', () => {
   it('returns a non-empty string', () => {

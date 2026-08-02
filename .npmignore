@@ -15,10 +15,8 @@ assets/
 
 # Docs (kept: README.md, CHANGELOG.md, LICENSE via "files" in package.json)
 TODO.md
-PROMPT.md
 DESIGN.md
 AGENTS.md
-CLAUDE.md
 
 # Misc
 .env

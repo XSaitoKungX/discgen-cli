@@ -1,11 +1,31 @@
 import type { WizardOptions } from '../../types/index.js';
 
 export function generateIndexTs(opts: WizardOptions): string {
-  const needsMessages    = opts.commandType === 'prefix' || opts.commandType === 'both';
-  const hasPrefixCmds    = needsMessages;
-  const prefixImport     = hasPrefixCmds ? ', PrefixCommand' : '';
-  const prefixClientDecl = hasPrefixCmds ? '\n    prefixCommands: Collection<string, PrefixCommand>;' : '';
-  const prefixInit       = hasPrefixCmds ? '\nclient.prefixCommands = new Collection();' : '';
+  const needsMessages = opts.commandType === 'prefix' || opts.commandType === 'both';
+  const hasLogging = opts.features.includes('logging');
+  const hasDatabase = opts.database !== 'none';
+  const hasPrefixCmds = needsMessages;
+  const prefixImport = hasPrefixCmds ? ', PrefixCommand' : '';
+  const prefixClientDecl = hasPrefixCmds
+    ? '\n    prefixCommands: Collection<string, PrefixCommand>;'
+    : '';
+  const prefixInit = hasPrefixCmds ? '\nclient.prefixCommands = new Collection();' : '';
+
+  const intents: string[] = ['GatewayIntentBits.Guilds'];
+  if (needsMessages || hasLogging) {
+    intents.push('GatewayIntentBits.GuildMessages');
+    intents.push('GatewayIntentBits.MessageContent');
+  }
+  if (hasLogging) {
+    intents.push('GatewayIntentBits.GuildMembers');
+    intents.push('GatewayIntentBits.GuildModeration');
+  }
+  const intentsStr = intents.map((i) => `    ${i},`).join('\n');
+
+  const databaseImport = hasDatabase ? `\nimport { initDb } from './database/index.js';` : '';
+  const databaseInit = hasDatabase
+    ? `\nawait initDb();\nlogger.info('Database initialized.', 'db');`
+    : '';
 
   return `import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import 'dotenv/config';
@@ -13,7 +33,7 @@ import { loadCommands } from './handlers/commandHandler.js';
 import { loadComponents } from './handlers/interactionLoader.js';
 import { loadEvents } from './handlers/eventHandler.js';
 import { logger } from './utils/logger.js';
-import { env } from './utils/env.js';
+import { env } from './utils/env.js';${databaseImport}
 import type { Command${prefixImport}, ButtonHandler, SelectHandler, ModalHandler } from './types/index.js';
 
 declare module 'discord.js' {
@@ -27,7 +47,7 @@ declare module 'discord.js' {
 
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,${needsMessages ? '\n    GatewayIntentBits.GuildMessages,\n    GatewayIntentBits.MessageContent,' : ''}
+${intentsStr}
   ],
 });
 
@@ -36,6 +56,7 @@ client.buttons  = new Collection();
 client.selects  = new Collection();
 client.modals   = new Collection();
 
+${databaseInit}
 await loadCommands(client);
 await loadComponents(client);
 await loadEvents(client);
@@ -49,11 +70,12 @@ await client.login(env.DISCORD_TOKEN);
 `;
 }
 
-export function generateEnvExample(opts?: { commandType?: string }): string {
+export function generateEnvExample(opts?: { commandType?: string; features?: string[] }): string {
   const needsPrefix = opts?.commandType === 'prefix' || opts?.commandType === 'both';
+  const hasLogging = opts?.features?.includes('logging') ?? false;
   return `DISCORD_TOKEN=your_bot_token_here
 CLIENT_ID=your_client_id_here
-GUILD_ID=your_guild_id_here${needsPrefix ? '\nPREFIX=!' : ''}
+GUILD_ID=your_guild_id_here${needsPrefix ? '\nPREFIX=!' : ''}${hasLogging ? '\nLOG_CHANNEL_ID=your_log_channel_id_here' : ''}
 `;
 }
 
@@ -75,6 +97,7 @@ export function generateTsconfig(): string {
     "lib": ["ES2022"],
     "outDir": "dist",
     "rootDir": "src",
+    "types": ["node"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

@@ -1,16 +1,26 @@
 import * as p from '@clack/prompts';
-import type { WizardOptions, CommandType, Feature, Database, PackageManager } from '../types/index.js';
+import type {
+  WizardOptions,
+  CommandType,
+  Feature,
+  Database,
+  PackageManager,
+} from '../types/index.js';
+import { validateProjectName } from '../utils/validate.js';
 
-export async function runPrompts(initialName?: string, detectedPm?: PackageManager): Promise<WizardOptions> {
-  const projectName = initialName ?? (await p.text({
-    message: 'Project name:',
-    placeholder: 'my-discord-bot',
-    validate(value) {
-      if (!value?.trim()) return 'Name cannot be empty.';
-      if (!/^[a-z0-9-_]+$/i.test(value)) return 'Use letters, numbers, hyphens, or underscores.';
-      return undefined;
-    },
-  }));
+export async function runPrompts(
+  initialName?: string,
+  detectedPm?: PackageManager,
+): Promise<WizardOptions> {
+  const projectName =
+    initialName ??
+    (await p.text({
+      message: 'Project name:',
+      placeholder: 'my-discord-bot',
+      validate(value) {
+        return validateProjectName(value ?? '');
+      },
+    }));
 
   if (p.isCancel(projectName)) {
     p.cancel('Operation cancelled.');
@@ -20,9 +30,9 @@ export async function runPrompts(initialName?: string, detectedPm?: PackageManag
   const commandType = await p.select<CommandType>({
     message: 'Command type:',
     options: [
-      { value: 'slash',  label: 'Slash Commands', hint: 'Modern / interactions (recommended)' },
+      { value: 'slash', label: 'Slash Commands', hint: 'Modern / interactions (recommended)' },
       { value: 'prefix', label: 'Prefix Commands', hint: 'Classic !command style' },
-      { value: 'both',   label: 'Both',            hint: 'Slash + Prefix' },
+      { value: 'both', label: 'Both', hint: 'Slash + Prefix' },
     ],
   });
 
@@ -35,12 +45,25 @@ export async function runPrompts(initialName?: string, detectedPm?: PackageManag
     message: 'Select features:',
     options: [
       { value: 'moderation', label: 'Moderation', hint: 'ban, kick, timeout, warn' },
-      { value: 'utility',    label: 'Utility',    hint: 'ping, userinfo, serverinfo' },
-      { value: 'fun',        label: 'Fun',         hint: 'coinflip, 8ball, meme' },
-      { value: 'economy',    label: 'Economy',     hint: 'balance, daily, leaderboard' },
-      { value: 'components', label: 'Components',  hint: 'buttons, select menus, modals + demo command' },
-      { value: 'music',      label: 'Music',       hint: 'placeholder (requires voice deps)' },
-      { value: 'i18n',       label: 'i18n',        hint: 'multi-language support (en + de), useT() helper, /locale command' },
+      { value: 'utility', label: 'Utility', hint: 'ping, userinfo, serverinfo' },
+      { value: 'fun', label: 'Fun', hint: 'coinflip, 8ball, meme' },
+      { value: 'economy', label: 'Economy', hint: 'balance, daily, leaderboard' },
+      {
+        value: 'components',
+        label: 'Components',
+        hint: 'buttons, select menus, modals + demo command',
+      },
+      { value: 'music', label: 'Music', hint: 'placeholder (requires voice deps)' },
+      {
+        value: 'i18n',
+        label: 'i18n',
+        hint: 'multi-language support (en + de), useT() helper, /locale command',
+      },
+      {
+        value: 'logging',
+        label: 'Logging',
+        hint: 'audit log — member join/leave, bans, message edits/deletes',
+      },
     ],
     required: false,
   });
@@ -53,9 +76,10 @@ export async function runPrompts(initialName?: string, detectedPm?: PackageManag
   const database = await p.select<Database>({
     message: 'Database:',
     options: [
-      { value: 'none',       label: 'None' },
-      { value: 'sqlite',     label: 'SQLite',      hint: 'better-sqlite3' },
-      { value: 'postgresql', label: 'PostgreSQL',  hint: 'pg + drizzle-orm' },
+      { value: 'none', label: 'None' },
+      { value: 'sqlite', label: 'SQLite', hint: 'better-sqlite3' },
+      { value: 'postgresql', label: 'PostgreSQL', hint: 'pg + drizzle-orm' },
+      { value: 'mongodb', label: 'MongoDB', hint: 'mongoose' },
     ],
   });
 
@@ -65,9 +89,9 @@ export async function runPrompts(initialName?: string, detectedPm?: PackageManag
   }
 
   const pmOptions: { value: PackageManager; label: string; hint?: string }[] = [
-    { value: 'npm',  label: 'npm' },
+    { value: 'npm', label: 'npm' },
     { value: 'pnpm', label: 'pnpm' },
-    { value: 'bun',  label: 'bun' },
+    { value: 'bun', label: 'bun' },
     { value: 'yarn', label: 'yarn' },
   ];
 
@@ -105,12 +129,12 @@ export async function runPrompts(initialName?: string, detectedPm?: PackageManag
   }
 
   return {
-    projectName:    projectName as string,
-    commandType:    commandType as CommandType,
-    features:       features as Feature[],
-    database:       database as Database,
+    projectName: projectName as string,
+    commandType: commandType as CommandType,
+    features: features as Feature[],
+    database: database as Database,
     packageManager: packageManager as PackageManager,
-    gitInit:        gitInit as boolean,
-    installDeps:    installDeps as boolean,
+    gitInit: gitInit as boolean,
+    installDeps: installDeps as boolean,
   };
 }

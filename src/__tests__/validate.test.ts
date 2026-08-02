@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateProjectName } from '../utils/validate.js';
+import { validateFileSegment, validateProjectName } from '../utils/validate.js';
 
 describe('validateProjectName', () => {
   it('returns undefined for valid names', () => {
@@ -29,5 +29,27 @@ describe('validateProjectName', () => {
   it('accepts names at exactly 214 chars', () => {
     const maxName = 'a'.repeat(214);
     expect(validateProjectName(maxName)).toBeUndefined();
+  });
+
+  it('rejects Windows reserved file names', () => {
+    expect(validateProjectName('CON')).toBeDefined();
+    expect(validateProjectName('lpt1')).toBeDefined();
+  });
+});
+
+describe('validateFileSegment', () => {
+  it('accepts safe file and directory names', () => {
+    expect(validateFileSegment('my-command')).toBeUndefined();
+    expect(validateFileSegment('utility_2')).toBeUndefined();
+  });
+
+  it('rejects traversal and path separators', () => {
+    expect(validateFileSegment('../escape')).toBeDefined();
+    expect(validateFileSegment('nested/name')).toBeDefined();
+    expect(validateFileSegment('nested\\name')).toBeDefined();
+  });
+
+  it('uses the supplied field label in errors', () => {
+    expect(validateFileSegment('', 'Category')).toContain('Category');
   });
 });

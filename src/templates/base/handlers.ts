@@ -2,7 +2,7 @@ import type { WizardOptions } from '../../types/index.js';
 
 export function generateCommandHandler(opts: WizardOptions): string {
   const hasPrefixCommands = opts.commandType === 'prefix' || opts.commandType === 'both';
-  const hasSlashCommands  = opts.commandType === 'slash'  || opts.commandType === 'both';
+  const hasSlashCommands = opts.commandType === 'slash' || opts.commandType === 'both';
 
   return `import { readdirSync, statSync } from 'fs';
 import { join, dirname } from 'path';
@@ -24,7 +24,9 @@ export async function loadCommands(client: Client): Promise<void> {
 
     for (const file of files) {
       const filePath = join(entryPath, file);
-${hasPrefixCommands ? `
+${
+  hasPrefixCommands
+    ? `
       // Prefix commands live in commands/prefix/ and use a default export
       if (entry === 'prefix') {
         const mod = await import(pathToFileURL(filePath).href) as { default?: PrefixCommand };
@@ -34,12 +36,18 @@ ${hasPrefixCommands ? `
         }
         continue;
       }
-` : ''}${hasSlashCommands ? `
+`
+    : ''
+}${
+    hasSlashCommands
+      ? `
       const mod = await import(pathToFileURL(filePath).href) as Record<string, unknown>;
       if ('data' in mod && 'execute' in mod) {
         const command = mod as unknown as Command;
         client.commands.set(command.data.name, command);
-      }` : ''}
+      }`
+      : ''
+  }
     }
   }
 }

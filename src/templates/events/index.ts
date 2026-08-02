@@ -34,23 +34,31 @@ export default event;
 `;
   }
 
+  const hasI18n = opts.features.includes('i18n');
+  const i18nImport = hasI18n ? `\nimport { useT } from '../i18n/index.js';` : '';
+  const i18nInit = hasI18n ? `\n    const t = useT(interaction.guildId);` : '';
+  const unknownCmd = hasI18n ? `t.errors.unknownCommand` : `'Unknown command.'`;
+  const cmdFailed = hasI18n
+    ? `t.errors.commandFailed`
+    : `'There was an error executing that command.'`;
+
   return `import { Events } from 'discord.js';
 import type { Interaction, Client } from 'discord.js';
 import type { Event } from '../types/index.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';${i18nImport}
 
 const event: Event = {
   name: Events.InteractionCreate,
   async execute(...args: unknown[]): Promise<void> {
     const interaction = args[0] as Interaction;
-    const client = args[1] as Client;
+    const client = args[1] as Client;${i18nInit}
 
     // ── Slash commands ──────────────────────────────────────────────────────
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName);
 
       if (!command) {
-        await interaction.reply({ content: 'Unknown command.', ephemeral: true });
+        await interaction.reply({ content: ${unknownCmd}, ephemeral: true });
         return;
       }
 
@@ -60,7 +68,7 @@ const event: Event = {
         await command.execute(interaction, client);
       } catch (error) {
         logger.error(\`Failed to execute /\${interaction.commandName}\`, error, 'command');
-        const msg = { content: 'There was an error executing that command.', ephemeral: true };
+        const msg = { content: ${cmdFailed}, ephemeral: true };
         if (interaction.replied || interaction.deferred) {
           await interaction.followUp(msg);
         } else {

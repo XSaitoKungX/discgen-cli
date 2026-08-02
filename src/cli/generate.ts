@@ -1,22 +1,41 @@
 import * as p from '@clack/prompts';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { generateSlashCommandFile, generatePrefixCommandFile } from '../templates/generate/command.js';
+import {
+  generateSlashCommandFile,
+  generatePrefixCommandFile,
+} from '../templates/generate/command.js';
 import { generateEventFile, KNOWN_EVENTS } from '../templates/generate/event.js';
 import { generateGuardFile } from '../templates/generate/guard.js';
-import { generateButtonFile, generateSelectFile, generateModalFile } from '../templates/generate/interaction.js';
+import {
+  generateButtonFile,
+  generateSelectFile,
+  generateModalFile,
+} from '../templates/generate/interaction.js';
 import { generateServiceFile } from '../templates/generate/service.js';
+import { validateFileSegment } from '../utils/validate.js';
 
 type GenerateType = 'command' | 'event' | 'guard' | 'button' | 'select' | 'modal' | 'service';
 
 const TYPE_ALIASES: Record<string, GenerateType> = {
-  command: 'command', cmd: 'command', c: 'command',
-  event:   'event',   evt: 'event',   e: 'event',
-  guard:   'guard',   gd:  'guard',
-  button:  'button',  btn: 'button',  b: 'button',
-  select:  'select',  sel: 'select',  s: 'select',
-  modal:   'modal',   m:   'modal',
-  service: 'service', svc: 'service',
+  command: 'command',
+  cmd: 'command',
+  c: 'command',
+  event: 'event',
+  evt: 'event',
+  e: 'event',
+  guard: 'guard',
+  gd: 'guard',
+  button: 'button',
+  btn: 'button',
+  b: 'button',
+  select: 'select',
+  sel: 'select',
+  s: 'select',
+  modal: 'modal',
+  m: 'modal',
+  service: 'service',
+  svc: 'service',
 };
 
 export interface GenerateInput {
@@ -56,21 +75,34 @@ export async function runGenerate(input: GenerateInput = {}): Promise<void> {
       message: 'What do you want to generate?',
       options: [
         { value: 'command' as const, label: 'command', hint: 'slash or prefix command' },
-        { value: 'event'   as const, label: 'event',   hint: 'Discord.js event handler' },
-        { value: 'button'  as const, label: 'button',  hint: 'button interaction handler' },
-        { value: 'select'  as const, label: 'select',  hint: 'select menu interaction handler' },
-        { value: 'modal'   as const, label: 'modal',   hint: 'modal submit handler' },
-        { value: 'guard'   as const, label: 'guard',   hint: 'permission / cooldown guard function' },
-        { value: 'service' as const, label: 'service', hint: 'singleton service class (src/services/)' },
+        { value: 'event' as const, label: 'event', hint: 'Discord.js event handler' },
+        { value: 'button' as const, label: 'button', hint: 'button interaction handler' },
+        { value: 'select' as const, label: 'select', hint: 'select menu interaction handler' },
+        { value: 'modal' as const, label: 'modal', hint: 'modal submit handler' },
+        { value: 'guard' as const, label: 'guard', hint: 'permission / cooldown guard function' },
+        {
+          value: 'service' as const,
+          label: 'service',
+          hint: 'singleton service class (src/services/)',
+        },
       ],
     });
-    if (p.isCancel(answer)) { p.cancel('Aborted.'); process.exit(0); }
+    if (p.isCancel(answer)) {
+      p.cancel('Aborted.');
+      process.exit(0);
+    }
     genType = answer as GenerateType;
   }
 
   // --- event: pick from known list ---
   if (genType === 'event') {
     let eventName: string;
+    const providedNameError = input.name
+      ? validateFileSegment(input.name, 'Event name')
+      : undefined;
+    if (providedNameError) {
+      throw new Error(providedNameError);
+    }
     if (input.name && (KNOWN_EVENTS as readonly string[]).includes(input.name)) {
       eventName = input.name;
     } else {
@@ -79,7 +111,10 @@ export async function runGenerate(input: GenerateInput = {}): Promise<void> {
         ? [{ value: input.name, label: `${input.name} (custom)` }, ...knownOptions]
         : knownOptions;
       const answer = await p.select({ message: 'Discord event to handle:', options: choices });
-      if (p.isCancel(answer)) { p.cancel('Aborted.'); process.exit(0); }
+      if (p.isCancel(answer)) {
+        p.cancel('Aborted.');
+        process.exit(0);
+      }
       eventName = answer as string;
     }
     const filePath = path.join(process.cwd(), 'src', 'events', `${eventName}.ts`);
@@ -95,10 +130,18 @@ export async function runGenerate(input: GenerateInput = {}): Promise<void> {
   } else {
     const answer = await p.text({
       message: `Name for the ${genType}:`,
-      validate: (v) => (v?.trim() ? undefined : 'Name is required.'),
+      validate: (value) => validateFileSegment(value ?? '', 'Name'),
     });
-    if (p.isCancel(answer)) { p.cancel('Aborted.'); process.exit(0); }
+    if (p.isCancel(answer)) {
+      p.cancel('Aborted.');
+      process.exit(0);
+    }
     name = (answer as string).trim().toLowerCase().replace(/\s+/g, '-');
+  }
+
+  const nameError = validateFileSegment(name, 'Name');
+  if (nameError) {
+    throw new Error(nameError);
   }
 
   let filePath: string;
@@ -116,10 +159,17 @@ export async function runGenerate(input: GenerateInput = {}): Promise<void> {
           message: 'Category (subfolder):',
           placeholder: 'utility',
           initialValue: 'utility',
-          validate: (v) => (v?.trim() ? undefined : 'Category is required.'),
+          validate: (value) => validateFileSegment(value ?? '', 'Category'),
         });
-        if (p.isCancel(answer)) { p.cancel('Aborted.'); process.exit(0); }
+        if (p.isCancel(answer)) {
+          p.cancel('Aborted.');
+          process.exit(0);
+        }
         category = ((answer as string).trim() || 'utility').toLowerCase();
+      }
+      const categoryError = validateFileSegment(category, 'Category');
+      if (categoryError) {
+        throw new Error(categoryError);
       }
       filePath = path.join(process.cwd(), 'src', 'commands', category, `${name}.ts`);
       content = generateSlashCommandFile(name);

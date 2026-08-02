@@ -4,7 +4,12 @@ import { generateCooldownTs } from '../templates/base/cooldown.js';
 import { generateHelpCommand } from '../templates/commands/help.js';
 import { generateEmbedTs } from '../templates/base/embed.js';
 import { generatePaginatorTs } from '../templates/base/paginator.js';
-import { generateLocaleEn, generateLocaleDe, generateI18nIndex, generateLocaleSwitchCommand } from '../templates/i18n/index.js';
+import {
+  generateLocaleEn,
+  generateLocaleDe,
+  generateI18nIndex,
+  generateLocaleSwitchCommand,
+} from '../templates/i18n/index.js';
 import type { WizardOptions } from '../types/index.js';
 
 const baseOpts: WizardOptions = {

@@ -6,6 +6,36 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- Consolidated repository agent guidance into `AGENTS.md`; removed stale `CLAUDE.md` and
+  `PROMPT.md`
+- Updated root and generated dependencies to current mutually compatible versions
+- Raised the runtime floor to Node.js `>=22.13.0` and aligned CI with Node 22/24
+- Changed generated production builds to `tsc` so dynamically loaded source files are emitted
+- Added a root `typecheck` script to CI and the publication gate
+- Reworked README, design documentation, and the prioritized known-issues backlog
+
+### Added
+
+- Central validation for project names, generated file names, event names, and categories
+- Generated Prefix `help` and `ping` commands
+- Startup initialization for SQLite, PostgreSQL, and MongoDB
+
+### Fixed
+
+- Blocked path traversal and Windows device-name targets in create/generate flows
+- Switched Commander to asynchronous parsing for asynchronous actions
+- Stopped emitting unusable slash feature commands for prefix-only projects
+- Removed unused `tsup` and `drizzle-kit` dependencies from generated projects
+- Generated README commands now use the selected package manager
+- Made Economy daily claims atomic across SQLite, PostgreSQL, and MongoDB, and unified the
+  no-database economy state shared by `daily`, `balance`, and `leaderboard`
+
+---
+
 ## [1.5.0] — 2026-05-04
 
 ### Added

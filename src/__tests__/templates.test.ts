@@ -6,6 +6,7 @@ import { generatePingCommand } from '../templates/commands/utility.js';
 import { generateBanCommand } from '../templates/commands/moderation.js';
 import { generateCoinflipCommand } from '../templates/commands/fun.js';
 import { generateDatabaseTs } from '../templates/database/index.js';
+import { generateReadme } from '../templates/base/deploy.js';
 import type { WizardOptions } from '../types/index.js';
 
 const baseOpts: WizardOptions = {
@@ -102,5 +103,20 @@ describe('generateDatabaseTs', () => {
 
   it('returns drizzle setup for postgresql', () => {
     expect(generateDatabaseTs('postgresql')).toContain('drizzle');
+  });
+
+  it('exports an initializer for every supported database', () => {
+    expect(generateDatabaseTs('sqlite')).toContain('export function initDb');
+    expect(generateDatabaseTs('postgresql')).toContain('export async function initDb');
+    expect(generateDatabaseTs('mongodb')).toContain('export async function initDb');
+  });
+});
+
+describe('generateReadme', () => {
+  it('uses the selected package manager', () => {
+    const result = generateReadme({ ...baseOpts, packageManager: 'pnpm' });
+    expect(result).toContain('pnpm deploy');
+    expect(result).toContain('pnpm dev');
+    expect(result).not.toContain('npm run dev');
   });
 });

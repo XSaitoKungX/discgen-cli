@@ -1,14 +1,19 @@
-export function generateCoinflipCommand(): string {
+export function generateCoinflipCommand(hasI18n = false): string {
+  const i18nImport = hasI18n ? `\nimport { useT } from '../../i18n/index.js';` : '';
+  const i18nInit = hasI18n ? `\n  const t = useT(interaction.guildId);` : '';
+  const heads = hasI18n ? `t.fun.coinflipHeads` : `'🪙 **Heads!**'`;
+  const tails = hasI18n ? `t.fun.coinflipTails` : `'🪙 **Tails!**'`;
+
   return `import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
 import type { ChatInputCommandInteraction, Client } from 'discord.js';
-import type { Command } from '../../types/index.js';
+import type { Command } from '../../types/index.js';${i18nImport}
 
 export const data = new SlashCommandBuilder()
   .setName('coinflip')
   .setDescription('Flip a coin — heads or tails?');
 
-export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
-  const result = Math.random() < 0.5 ? '🪙 **Heads!**' : '🪙 **Tails!**';
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {${i18nInit}
+  const result = Math.random() < 0.5 ? ${heads} : ${tails};
 
   const container = new ContainerBuilder()
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(result));
@@ -20,10 +25,14 @@ export default { data, execute } satisfies Command;
 `;
 }
 
-export function generateEightBallCommand(): string {
+export function generateEightBallCommand(hasI18n = false): string {
+  const i18nImport = hasI18n ? `\nimport { useT } from '../../i18n/index.js';` : '';
+  const i18nInit = hasI18n ? `\n  const t = useT(interaction.guildId);` : '';
+  const answerExpr = hasI18n ? `t.fun.eightBall(answer)` : `answer`;
+
   return `import { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } from 'discord.js';
 import type { ChatInputCommandInteraction, Client } from 'discord.js';
-import type { Command } from '../../types/index.js';
+import type { Command } from '../../types/index.js';${i18nImport}
 
 const RESPONSES = [
   'It is certain.',
@@ -44,14 +53,14 @@ export const data = new SlashCommandBuilder()
     option.setName('question').setDescription('Your question').setRequired(true),
   );
 
-export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {
+export async function execute(interaction: ChatInputCommandInteraction, _client: Client): Promise<void> {${i18nInit}
   const question = interaction.options.getString('question', true);
   const answer = RESPONSES[Math.floor(Math.random() * RESPONSES.length)] ?? 'Unknown';
 
   const container = new ContainerBuilder()
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(\`🎱 **\${question}\`))
     .addSeparatorComponents(new SeparatorBuilder())
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent(answer));
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(${answerExpr}));
 
   await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
 }

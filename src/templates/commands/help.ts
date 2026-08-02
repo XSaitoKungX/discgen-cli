@@ -7,22 +7,39 @@ function buildHelpSections(opts: WizardOptions): string {
   sections.push('### General\n' + general.join('\n'));
 
   if (opts.features.includes('utility')) {
-    const cmds = ['`/userinfo` — Info about a user', '`/serverinfo` — Server statistics', '`/avatar` — Show user avatar'];
+    const cmds = [
+      '`/userinfo` — Info about a user',
+      '`/serverinfo` — Server statistics',
+      '`/avatar` — Show user avatar',
+    ];
     sections.push('### Utility\n' + cmds.join('\n'));
   }
 
   if (opts.features.includes('moderation')) {
-    const cmds = ['`/ban` — Ban a member', '`/kick` — Kick a member', '`/timeout` — Timeout a member', '`/warn` — Warn a member'];
+    const cmds = [
+      '`/ban` — Ban a member',
+      '`/kick` — Kick a member',
+      '`/timeout` — Timeout a member',
+      '`/warn` — Warn a member',
+    ];
     sections.push('### Moderation\n' + cmds.join('\n'));
   }
 
   if (opts.features.includes('fun')) {
-    const cmds = ['`/coinflip` — Flip a coin', '`/8ball` — Ask the magic 8-ball', '`/meme` — Random meme'];
+    const cmds = [
+      '`/coinflip` — Flip a coin',
+      '`/8ball` — Ask the magic 8-ball',
+      '`/meme` — Random meme',
+    ];
     sections.push('### Fun\n' + cmds.join('\n'));
   }
 
   if (opts.features.includes('economy')) {
-    const cmds = ['`/balance` — Check your coin balance', '`/daily` — Claim your daily reward', '`/leaderboard` — Top 10 richest users'];
+    const cmds = [
+      '`/balance` — Check your coin balance',
+      '`/daily` — Claim your daily reward',
+      '`/leaderboard` — Top 10 richest users',
+    ];
     sections.push('### Economy\n' + cmds.join('\n'));
   }
 
@@ -44,16 +61,39 @@ function buildHelpSections(opts: WizardOptions): string {
 
 export function generateHelpCommand(opts: WizardOptions): string {
   if (opts.commandType === 'prefix') {
-    const prefixSections: string[] = ['**General**', '`!help` — Show this menu', '`!ping` — Check bot latency'];
+    const prefixSections: string[] = [
+      '**General**',
+      '`!help` — Show this menu',
+      '`!ping` — Check bot latency',
+    ];
 
     if (opts.features.includes('moderation')) {
-      prefixSections.push('', '**Moderation**', '`!ban` — Ban a member', '`!kick` — Kick a member', '`!timeout` — Timeout a member', '`!warn` — Warn a member');
+      prefixSections.push(
+        '',
+        '**Moderation**',
+        '`!ban` — Ban a member',
+        '`!kick` — Kick a member',
+        '`!timeout` — Timeout a member',
+        '`!warn` — Warn a member',
+      );
     }
     if (opts.features.includes('fun')) {
-      prefixSections.push('', '**Fun**', '`!coinflip` — Flip a coin', '`!8ball` — Ask the 8-ball', '`!meme` — Random meme');
+      prefixSections.push(
+        '',
+        '**Fun**',
+        '`!coinflip` — Flip a coin',
+        '`!8ball` — Ask the 8-ball',
+        '`!meme` — Random meme',
+      );
     }
     if (opts.features.includes('economy')) {
-      prefixSections.push('', '**Economy**', '`!balance` — Check balance', '`!daily` — Daily reward', '`!leaderboard` — Leaderboard');
+      prefixSections.push(
+        '',
+        '**Economy**',
+        '`!balance` — Check balance',
+        '`!daily` — Daily reward',
+        '`!leaderboard` — Leaderboard',
+      );
     }
 
     const prefixContent = prefixSections.join('\\n');

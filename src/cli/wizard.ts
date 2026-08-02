@@ -4,6 +4,7 @@ import { execSync } from 'child_process';
 import { runPrompts } from './prompts.js';
 import { scaffoldProject, removeDir, pathExists } from '../generators/files.js';
 import { detectPackageManager, getInstallCommand, getRunCommand } from '../utils/pm.js';
+import { validateProjectName } from '../utils/validate.js';
 import type { WizardOptions } from '../types/index.js';
 
 interface WizardInput {
@@ -57,7 +58,7 @@ export async function runWizard(input: WizardInput = {}): Promise<void> {
       packageManager: detectedPm,
       ...preset,
       ...(input.skipPrompts?.installDeps === false ? { installDeps: false } : {}),
-      ...(input.skipPrompts?.gitInit === false    ? { gitInit: false }    : {}),
+      ...(input.skipPrompts?.gitInit === false ? { gitInit: false } : {}),
     } as WizardOptions;
     p.log.info(`Using preset: ${input.template}`);
   } else if (input.skipPrompts && isComplete(input.skipPrompts)) {
@@ -70,6 +71,11 @@ export async function runWizard(input: WizardInput = {}): Promise<void> {
   }
 
   opts.dryRun = input.dryRun ?? false;
+
+  const projectNameError = validateProjectName(opts.projectName);
+  if (projectNameError) {
+    throw new Error(projectNameError);
+  }
 
   const targetDir = path.resolve(process.cwd(), opts.projectName);
 

@@ -1,6 +1,7 @@
-export type Feature = 'moderation' | 'utility' | 'fun' | 'economy' | 'music' | 'components' | 'i18n';
+export type Feature =
+  'moderation' | 'utility' | 'fun' | 'economy' | 'music' | 'components' | 'i18n' | 'logging';
 
-export type Database = 'none' | 'sqlite' | 'postgresql';
+export type Database = 'none' | 'sqlite' | 'postgresql' | 'mongodb';
 
 export type PackageManager = 'npm' | 'pnpm' | 'bun' | 'yarn';
 

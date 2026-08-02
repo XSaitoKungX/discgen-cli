@@ -6,17 +6,24 @@ import { checkNodeVersion } from './utils/validate.js';
 import { runWizard } from './cli/wizard.js';
 import { runGenerate } from './cli/generate.js';
 
-checkNodeVersion();
+try {
+  checkNodeVersion();
+} catch (error) {
+  console.error(
+    error instanceof Error ? `\nError: ${error.message}` : '\nAn unexpected error occurred.',
+  );
+  process.exit(1);
+}
 
-const { version } = JSON.parse(
-  readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'),
-) as { version: string };
+const { version } = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8')) as {
+  version: string;
+};
 
 const program = new Command();
 
 program
   .name('discgen-cli')
-  .description('Scaffold a production-ready Discord Bot in seconds.')
+  .description('Generate a typed Discord.js bot starter in seconds.')
   .version(version)
   .argument('[name]', 'Project name')
   .option('--no-install', 'Skip dependency installation')
@@ -52,7 +59,9 @@ program
 program
   .command('generate [type] [name]')
   .alias('g')
-  .description('Generate a file in an existing project (command | event | guard)')
+  .description(
+    'Generate a file in an existing project (command | event | guard | button | select | modal | service)',
+  )
   .option('--category <category>', 'Command subfolder, e.g. utility (slash only)')
   .option('--prefix', 'Generate as a prefix command instead of slash')
   .option('--dry-run', 'Preview without writing')
@@ -75,4 +84,4 @@ program
     },
   );
 
-program.parse();
+void program.parseAsync();

@@ -47,6 +47,46 @@ export const users = pgTable('users', {
   lastDaily: timestamp('last_daily'),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+export async function initDb(): Promise<void> {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL must be set in .env');
+  }
+
+  await pool.query(\`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      balance INTEGER NOT NULL DEFAULT 0,
+      last_daily TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  \`);
+}
+`;
+  }
+
+  if (db === 'mongodb') {
+    return `import mongoose from 'mongoose';
+import 'dotenv/config';
+
+const userSchema = new mongoose.Schema(
+  {
+    _id:       { type: String },
+    balance:   { type: Number, default: 0 },
+    lastDaily: { type: Date,   default: null },
+  },
+  { timestamps: true },
+);
+
+export const User = mongoose.model('User', userSchema);
+
+export async function initDb(): Promise<void> {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI must be set in .env');
+  }
+  await mongoose.connect(uri);
+}
 `;
   }
 
@@ -56,5 +96,6 @@ export const users = pgTable('users', {
 export function generateDatabaseEnvVars(db: Database): string {
   if (db === 'sqlite') return '';
   if (db === 'postgresql') return 'DATABASE_URL=postgresql://user:password@localhost:5432/mybot\n';
+  if (db === 'mongodb') return 'MONGODB_URI=mongodb://localhost:27017/mybot\n';
   return '';
 }
