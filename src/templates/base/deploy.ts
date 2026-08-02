@@ -73,6 +73,7 @@ ${devCommand}            # start in watch mode
 |--------|-------------|
 | \`${devCommand}\` | Start bot in watch mode |
 | \`${buildCommand}\` | Compile TypeScript |
+| \`${getRunCommand(opts.packageManager, 'typecheck')}\` | Check TypeScript without emitting files |
 | \`${getRunCommand(opts.packageManager, 'start')}\` | Run compiled bot |
 | \`${deployCommand}\` | Register slash commands |
 | \`${lintCommand}\` | Run ESLint |
@@ -80,7 +81,7 @@ ${devCommand}            # start in watch mode
 
 ## Requirements
 
-- Node.js >= 22.13.0
+- Node.js >= 24
 - A Discord Bot Token — [Discord Developer Portal](https://discord.com/developers/applications)
 
 ## License

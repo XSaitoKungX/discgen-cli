@@ -1,7 +1,7 @@
 {
   "name": "discgen-cli",
-  "version": "1.6.0",
-  "description": "Generate a typed Discord.js bot starter in seconds.",
+  "version": "2.0.1",
+  "description": "Generate a typed Discord bot starter in seconds.",
   "bin": {
     "discgen-cli": "dist/index.js"
   },
@@ -50,14 +50,14 @@
     "url": "https://github.com/XSaitoKungX/discgen-cli/issues"
   },
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=24"
   },
   "dependencies": {
     "@clack/prompts": "^1.7.0",
     "commander": "^15.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.20.1",
+    "@types/node": "^24.12.4",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.65.0",
     "eslint": "^10.8.0",

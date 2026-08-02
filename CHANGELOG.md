@@ -6,33 +6,52 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
-
-### Changed
-
-- Consolidated repository agent guidance into `AGENTS.md`; removed stale `CLAUDE.md` and
-  `PROMPT.md`
-- Updated root and generated dependencies to current mutually compatible versions
-- Raised the runtime floor to Node.js `>=22.13.0` and aligned CI with Node 22/24
-- Changed generated production builds to `tsc` so dynamically loaded source files are emitted
-- Added a root `typecheck` script to CI and the publication gate
-- Reworked README, design documentation, and the prioritized known-issues backlog
-
-### Added
-
-- Central validation for project names, generated file names, event names, and categories
-- Generated Prefix `help` and `ping` commands
-- Startup initialization for SQLite, PostgreSQL, and MongoDB
+## [2.0.1] — 2026-08-02
 
 ### Fixed
 
-- Blocked path traversal and Windows device-name targets in create/generate flows
-- Switched Commander to asynchronous parsing for asynchronous actions
-- Stopped emitting unusable slash feature commands for prefix-only projects
-- Removed unused `tsup` and `drizzle-kit` dependencies from generated projects
-- Generated README commands now use the selected package manager
-- Made Economy daily claims atomic across SQLite, PostgreSQL, and MongoDB, and unified the
-  no-database economy state shared by `daily`, `balance`, and `leaderboard`
+- Unified no-database Economy state and made daily claims atomic for SQLite, PostgreSQL, and MongoDB.
+- Preserved all dynamically loaded generated files by compiling generated projects with `tsc`.
+- Hardened generated paths and package-manager metadata.
+
+### Changed
+
+- Consolidated repository guidance, refreshed documentation and dependency metadata, and added a
+  publish gate that includes lint, typecheck, tests, and build.
+
+## [2.0.0] — 2026-06-02
+
+### Breaking
+
+- **Node.js baseline bumped to `>=24`** for `discgen-cli` and all generated projects.
+- Generated CI now targets **Node 24 LTS** instead of older Node matrices.
+
+### Added
+
+- **`discgen-cli list`** — prints available presets, command types, features, databases, and generate types.
+- **`--output <dir>`** — scaffold into an explicit output directory while keeping the package name separate.
+- **`.discgen.json`** — generated projects now include generator metadata for future `doctor` and `upgrade` workflows.
+- **`typecheck` script** — added to generated projects and release validation.
+
+### Changed
+
+- Updated CLI dependencies, including `commander@15`.
+- Updated generated bot dependency baselines, including `discord.js@^14.26.4`, `typescript@^6.0.3`, ESLint 10, and Node 24 type definitions.
+- Project name validation now follows npm package-name expectations more closely.
+- Generated file names are validated as safe lowercase kebab-case module names.
+- Next-step output now respects `--output <dir>`.
+- TODO roadmap was restructured into release, UX, template quality, feature, upgrade, and publishing tracks.
+
+### Fixed
+
+- Generated `cooldown.ts` no longer includes an unused `seconds` parameter in `getRemainingCooldown`.
+- Generated project CI no longer tests unsupported Node versions.
+- CLI help text for `generate` no longer lists only a subset of supported generate types.
+
+### Tests
+
+- 189 tests passing.
+- Full preset smoke-tested with dependency install, typecheck, lint, and build.
 
 ---
 

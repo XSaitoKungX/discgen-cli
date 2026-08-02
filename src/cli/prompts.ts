@@ -12,15 +12,23 @@ export async function runPrompts(
   initialName?: string,
   detectedPm?: PackageManager,
 ): Promise<WizardOptions> {
-  const projectName =
-    initialName ??
-    (await p.text({
+  let projectName: string | symbol;
+
+  if (initialName) {
+    const error = validateProjectName(initialName);
+    if (error) {
+      p.log.error(error);
+      p.cancel('Aborted.');
+      process.exit(1);
+    }
+    projectName = initialName;
+  } else {
+    projectName = await p.text({
       message: 'Project name:',
       placeholder: 'my-discord-bot',
-      validate(value) {
-        return validateProjectName(value ?? '');
-      },
-    }));
+      validate: (value) => validateProjectName(value ?? ''),
+    });
+  }
 
   if (p.isCancel(projectName)) {
     p.cancel('Operation cancelled.');

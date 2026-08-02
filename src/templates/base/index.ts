@@ -95,6 +95,7 @@ export function generateTsconfig(): string {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
+    "types": ["node"],
     "outDir": "dist",
     "rootDir": "src",
     "types": ["node"],

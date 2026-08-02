@@ -18,7 +18,7 @@ export function generatePackageJson(opts: WizardOptions): PackageJson {
   };
 
   const devDeps: Record<string, string> = {
-    '@types/node': '^22.20.1',
+    '@types/node': '^24.12.4',
     '@typescript-eslint/eslint-plugin': '^8.65.0',
     '@typescript-eslint/parser': '^8.65.0',
     eslint: '^10.8.0',
@@ -45,6 +45,7 @@ export function generatePackageJson(opts: WizardOptions): PackageJson {
   const scripts: Record<string, string> = {
     dev: 'tsx watch src/index.ts',
     build: 'tsc',
+    typecheck: 'tsc --noEmit',
     start: 'node dist/index.js',
     deploy: 'tsx src/deploy-commands.ts',
     lint: 'eslint src',
@@ -59,6 +60,6 @@ export function generatePackageJson(opts: WizardOptions): PackageJson {
     scripts,
     dependencies: deps,
     devDependencies: devDeps,
-    engines: { node: '>=22.13.0' },
+    engines: { node: '>=24' },
   };
 }

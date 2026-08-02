@@ -45,13 +45,14 @@ describe('generatePackageJson', () => {
     const pkg = generatePackageJson(baseOpts);
     expect(pkg.scripts['dev']).toBeDefined();
     expect(pkg.scripts['build']).toBeDefined();
+    expect(pkg.scripts['typecheck']).toBeDefined();
     expect(pkg.scripts['start']).toBeDefined();
     expect(pkg.scripts['deploy']).toBeDefined();
   });
 
-  it('sets engines.node to the minimum supported runtime', () => {
+  it('sets engines.node to >=24', () => {
     const pkg = generatePackageJson(baseOpts);
-    expect(pkg.engines['node']).toBe('>=22.13.0');
+    expect(pkg.engines['node']).toBe('>=24');
   });
 
   it('uses tsc so dynamically loaded files are compiled', () => {

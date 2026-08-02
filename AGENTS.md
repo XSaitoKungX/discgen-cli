@@ -11,7 +11,7 @@ project rules here and user-facing behavior in `README.md` or `DESIGN.md`.
 `discgen-cli` is a published TypeScript CLI that scaffolds Discord.js bot projects and can add
 individual files to an existing generated project.
 
-- Runtime: Node.js `>=22.13.0`
+- Runtime: Node.js `>=24`
 - Language: strict TypeScript
 - CLI entry point: `src/index.ts`
 - Build output: `dist/index.js` (CJS) and `dist/index.mjs` (ESM), built with `tsup`

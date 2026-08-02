@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { validateFileSegment, validateProjectName } from '../utils/validate.js';
+import { validateFileName, validateFileSegment, validateProjectName } from '../utils/validate.js';
 
 describe('validateProjectName', () => {
   it('returns undefined for valid names', () => {
     expect(validateProjectName('my-bot')).toBeUndefined();
     expect(validateProjectName('my_bot')).toBeUndefined();
-    expect(validateProjectName('MyBot123')).toBeUndefined();
     expect(validateProjectName('a')).toBeUndefined();
   });
 
@@ -16,9 +15,19 @@ describe('validateProjectName', () => {
 
   it('returns error for names with invalid characters', () => {
     expect(validateProjectName('my bot')).toBeDefined();
-    expect(validateProjectName('my.bot')).toBeDefined();
     expect(validateProjectName('my/bot')).toBeDefined();
     expect(validateProjectName('my@bot')).toBeDefined();
+    expect(validateProjectName('@scope/my-bot')).toBeDefined();
+  });
+
+  it('returns error for uppercase names', () => {
+    expect(validateProjectName('MyBot123')).toBeDefined();
+  });
+
+  it('returns error for unsafe npm package names', () => {
+    expect(validateProjectName('_my-bot')).toBeDefined();
+    expect(validateProjectName('.my-bot')).toBeDefined();
+    expect(validateProjectName('my..bot')).toBeDefined();
   });
 
   it('returns error for names over 214 chars', () => {
@@ -51,5 +60,20 @@ describe('validateFileSegment', () => {
 
   it('uses the supplied field label in errors', () => {
     expect(validateFileSegment('', 'Category')).toContain('Category');
+  });
+});
+
+describe('validateFileName', () => {
+  it('returns undefined for kebab-case names', () => {
+    expect(validateFileName('ping')).toBeUndefined();
+    expect(validateFileName('role-check')).toBeUndefined();
+    expect(validateFileName('ticket-2')).toBeUndefined();
+  });
+
+  it('returns error for names that are not safe module filenames', () => {
+    expect(validateFileName('RoleCheck')).toBeDefined();
+    expect(validateFileName('role_check')).toBeDefined();
+    expect(validateFileName('-role-check')).toBeDefined();
+    expect(validateFileName('role/check')).toBeDefined();
   });
 });

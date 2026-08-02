@@ -2316,7 +2316,7 @@ exports[`package.json generator > base 1`] = `
   },
   "description": "Discord bot: snap-bot",
   "devDependencies": {
-    "@types/node": "^22.20.1",
+    "@types/node": "^24.12.4",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.65.0",
     "eslint": "^10.8.0",
@@ -2325,7 +2325,7 @@ exports[`package.json generator > base 1`] = `
     "typescript": "^6.0.3",
   },
   "engines": {
-    "node": ">=22.13.0",
+    "node": ">=24",
   },
   "name": "snap-bot",
   "scripts": {
@@ -2335,6 +2335,7 @@ exports[`package.json generator > base 1`] = `
     "format": "prettier --write src",
     "lint": "eslint src",
     "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
   },
   "type": "module",
   "version": "1.0.0",
@@ -2350,7 +2351,7 @@ exports[`package.json generator > mongodb db 1`] = `
   },
   "description": "Discord bot: snap-bot",
   "devDependencies": {
-    "@types/node": "^22.20.1",
+    "@types/node": "^24.12.4",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.65.0",
     "eslint": "^10.8.0",
@@ -2359,7 +2360,7 @@ exports[`package.json generator > mongodb db 1`] = `
     "typescript": "^6.0.3",
   },
   "engines": {
-    "node": ">=22.13.0",
+    "node": ">=24",
   },
   "name": "snap-bot",
   "scripts": {
@@ -2369,6 +2370,7 @@ exports[`package.json generator > mongodb db 1`] = `
     "format": "prettier --write src",
     "lint": "eslint src",
     "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
   },
   "type": "module",
   "version": "1.0.0",
@@ -2385,7 +2387,7 @@ exports[`package.json generator > pg db 1`] = `
   },
   "description": "Discord bot: snap-bot",
   "devDependencies": {
-    "@types/node": "^22.20.1",
+    "@types/node": "^24.12.4",
     "@types/pg": "^8.20.0",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.65.0",
@@ -2395,7 +2397,7 @@ exports[`package.json generator > pg db 1`] = `
     "typescript": "^6.0.3",
   },
   "engines": {
-    "node": ">=22.13.0",
+    "node": ">=24",
   },
   "name": "snap-bot",
   "scripts": {
@@ -2405,6 +2407,7 @@ exports[`package.json generator > pg db 1`] = `
     "format": "prettier --write src",
     "lint": "eslint src",
     "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
   },
   "type": "module",
   "version": "1.0.0",
@@ -2421,7 +2424,7 @@ exports[`package.json generator > sqlite db 1`] = `
   "description": "Discord bot: snap-bot",
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^22.20.1",
+    "@types/node": "^24.12.4",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.65.0",
     "eslint": "^10.8.0",
@@ -2430,7 +2433,7 @@ exports[`package.json generator > sqlite db 1`] = `
     "typescript": "^6.0.3",
   },
   "engines": {
-    "node": ">=22.13.0",
+    "node": ">=24",
   },
   "name": "snap-bot",
   "scripts": {
@@ -2440,6 +2443,7 @@ exports[`package.json generator > sqlite db 1`] = `
     "format": "prettier --write src",
     "lint": "eslint src",
     "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
   },
   "type": "module",
   "version": "1.0.0",
